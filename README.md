@@ -7,14 +7,16 @@ booking platform. The two clients —
 (iOS) — talk to the same Supabase project. This repo carries the
 agreement they share, so they don't silently drift.
 
+**Last sync with live schema: 2026-04-25.**
+
 ## What's in here
 
-| File | What it carries |
-|---|---|
-| [`types/supabase.ts`](./types/supabase.ts) | Generated TypeScript types from the live schema. Tables, RPCs, edge functions. ~800 lines. |
-| [`RPC_CONTRACT.md`](./RPC_CONTRACT.md) | Every public RPC and edge function with its caller list per client, plus semantic notes the types can't carry. |
-| [`SCHEMA_NOTES.md`](./SCHEMA_NOTES.md) | Soft-delete conventions, status enum values, realtime channels, RLS helpers, FK shapes worth memorizing. |
-| [`scripts/regenerate-types.sh`](./scripts/regenerate-types.sh) | One-command refresh of `types/supabase.ts` from the live schema. |
+| File | Size | What it carries |
+|---|---|---|
+| [`types/supabase.ts`](./types/supabase.ts) | 1214 lines | Generated TypeScript types from the live schema — 17 tables, ~30 RPCs, full Row/Insert/Update + FK relationships. |
+| [`RPC_CONTRACT.md`](./RPC_CONTRACT.md) | 174 lines | Every public RPC and edge function with its caller list per client, plus semantic notes the types can't carry. |
+| [`SCHEMA_NOTES.md`](./SCHEMA_NOTES.md) | 153 lines | Soft-delete conventions, status enum values, realtime channels, RLS helpers, FK shapes worth memorizing. |
+| [`scripts/regenerate-types.sh`](./scripts/regenerate-types.sh) | — | One-command refresh of `types/supabase.ts` from the live schema. |
 
 ## Why this exists
 
