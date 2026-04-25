@@ -10,7 +10,7 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 
 | Surface | State | Detail |
 |---|---|---|
-| Web — rosterplus.io | 🟢 Live | All 27 pages return 200. Hosted on Hostinger, auto-deploys from `etchmuzik/rosterplusapp` |
+| Web — rosterplus.io | 🟢 Live | All 27 pages return 200. **Migrating Hostinger → Netlify (auto-deploy from `etchmuzik/rosterplusapp` `main`)** as of 2026-04-25; Hostinger runs in parallel as rollback. |
 | iOS — App Store | 🟡 TestFlight beta | Every primary surface Supabase-backed. Build green. Awaiting first TestFlight upload via `scripts/ship.sh` |
 | Supabase — `vgjmfpryobsuboukbemr` | 🟢 ACTIVE_HEALTHY | eu-west-1, Postgres 17, 17 tables (RLS enabled), 13 edge functions |
 | Shared contract — this repo | 🟢 In sync | Schema regenerated 2026-04-25 |
@@ -30,13 +30,23 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 ## Live deploy state (rosterplus.io)
 
 - **HTTP**: 200 on every primary page
-- **Service worker**: `rostr-a2d3719` (cross-origin requests pass through to respect page CSP)
-- **Last deploy**: `a2d3719 feat: site-wide footer + homepage refresh reflecting Wave 5.x` (2026-04-25 16:05 UTC)
-- **Pending deploys** (on GitHub `main`, not yet pulled by Hostinger):
+- **Service worker on Hostinger build**: `rostr-a2d3719` (cross-origin requests pass through to respect page CSP)
+- **Last Hostinger deploy**: `a2d3719 feat: site-wide footer + homepage refresh reflecting Wave 5.x` (2026-04-25 16:05 UTC) — manual `npm run deploy` from a developer's Mac
+- **Commits on GitHub `main` not yet pushed to Hostinger** (this gap is what drove the Netlify migration — no auto-deploy meant manual deploy steps got missed):
   - `02ce92a fix(audit): unify availability check on RPC + housekeeping`
   - `58028a1 fix(epk): real bugs in the public EPK page + footer mislabel`
   - `61d8df1 docs: link README to rosterplus-shared contract repo`
-  - `32e6e75 docs: README reflects current state — 13 edge fns, mono palette, recent ships`
+  - `32e6e75 docs: README reflects current state`
+  - `a1f51d9 docs: link to STATUS.md in shared repo`
+  - `<next> feat: Netlify migration` (this commit)
+
+### Netlify migration (in flight)
+
+- `netlify.toml` — security headers, cache-control, 404 handler, build command
+- `scripts/deploy-stamp.sh` — Netlify-callable; rotates `sw.js` `CACHE_NAME`, stamps `window.ROSTR_VERSION`, appends `?v=<sha>` to `/assets/*` refs
+- `DEPLOY.md` — rewritten to document the new flow
+- **Pending manual step (user)**: connect repo at [app.netlify.com](https://app.netlify.com), point `rosterplus.io` DNS at Netlify load balancer
+- **Hostinger stays parallel** for ~1 week as a hot rollback. Cancel after Netlify proves stable.
 
 ---
 
