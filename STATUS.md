@@ -2,7 +2,7 @@
 
 Single-page snapshot of all three repos and the live deploy. Updated by hand at meaningful moments (post-audit, post-incident, post-feature-batch).
 
-**Last updated: 2026-04-27.**
+**Last updated: 2026-04-27 (afternoon batch).**
 
 ---
 
@@ -11,7 +11,7 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 | Surface | State | Detail |
 |---|---|---|
 | Web — rosterplus.io | 🟢 Live | All 27 pages return 200. **Migrating Hostinger → Netlify (auto-deploy from `etchmuzik/rosterplusapp` `main`)** as of 2026-04-25; Hostinger runs in parallel as rollback. |
-| iOS — App Store | 🟡 TestFlight beta | Every primary surface Supabase-backed. Build green, **104 tests** passing. Push-tap deep-links + universal links wired (apple-app-site-association still pending server-side). Money is `Decimal` end-to-end. |
+| iOS — App Store | 🟡 TestFlight beta | Every primary surface Supabase-backed. Build green, **108 tests** passing. Push-tap deep-links + universal links wired (apple-app-site-association still pending server-side). Money is `Decimal` end-to-end. AR localisation foundation shipped (24 high-traffic strings). |
 | Supabase — `vgjmfpryobsuboukbemr` | 🟢 ACTIVE_HEALTHY | eu-west-1, Postgres 17, 17 tables (RLS enabled), 13 edge functions |
 | Shared contract — this repo | 🟢 In sync | Schema regenerated 2026-04-25 |
 
@@ -21,7 +21,7 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 
 | Repo | HEAD | What's there |
 |---|---|---|
-| [`rosterplusapp-ios`](https://github.com/etchmuzik/rosterplusapp-ios) | `3893814` | iOS app. SwiftUI, Swift 6.1, iOS 18 deployment target. 104 tests passing. |
+| [`rosterplusapp-ios`](https://github.com/etchmuzik/rosterplusapp-ios) | `b542481` | iOS app. SwiftUI, Swift 6.1, iOS 18 deployment target. 108 tests passing. |
 | [`rosterplusapp`](https://github.com/etchmuzik/rosterplusapp) | `32e6e75` | Web app. Static HTML/CSS/vanilla JS. 27 pages, no build step. |
 | [`rosterplus-shared`](https://github.com/etchmuzik/rosterplus-shared) | `873102e` | Cross-platform contract — Supabase types + RPC catalog + schema notes |
 
@@ -98,7 +98,16 @@ Full caller list: [`RPC_CONTRACT.md`](./RPC_CONTRACT.md).
 
 ---
 
-## What landed in the 2026-04-27 iOS batch
+## What landed in the 2026-04-27 afternoon batch
+
+- **iOS — Inject-able `ProfileWriter`.** ProfileStore writes go through a tiny protocol with a Supabase default; tests inject mocks. Three optimistic-update tests that were disabled with `.disabled("Needs injectable client …")` are now green plus a new `rollbackOnFailure` case.
+- **iOS — Localisation foundation.** `Sources/Resources/Localizable.xcstrings` ships EN + AR translations for 24 high-traffic keys (common verbs, tab labels, auth flows, primary CTAs, state copy, screen titles). `S.Common.back` / `S.Tab.home` / `S.State.offline` style accessors so views can't fat-finger keys. NavHeader + OfflineBanner already pull from the catalog; the rest of the views still use literal strings — incremental sweep from here.
+- **Supabase — `admin_rate_counter` documented.** Migration `document_admin_rate_counter_intentional_no_policies` adds a `COMMENT ON TABLE` explaining that RLS-enabled-with-zero-policies is the intended state (only `_admin_rl_hit` SECURITY DEFINER touches it). The advisor still flags it as an INFO; that's now a known-and-intended.
+- **Supabase — Leaked-password protection.** Still pending — that's a dashboard toggle (Auth → Settings → Password Strength → enable HaveIBeenPwned check), not a SQL change. Flip it next time you're in the dashboard.
+- **Web — dashboard utility classes.** `dashboard.html` from 38 inline `style=` attributes to 20. Adds generic utilities to `system.css` (`.label-mono`, `.flex-row`, `.text-status-confirmed`, etc.). Remaining 20 are multi-property compounds + JS-template interpolations.
+- **Web — contracts modal aria-labels.** Modal close buttons now say *"Close contract preview"* / *"Close new-contract form"* instead of the generic *"Close dialog"*.
+
+## What landed in the 2026-04-27 morning batch
 
 Driven by the full A-to-Z audit at `workspace/docs/IOS-FULL-AUDIT-2026-04-27.md`:
 
@@ -124,8 +133,7 @@ From the 2026-04-25 + 2026-04-27 audits:
 - **Reviews UI on iOS public-profile screens** — `review_stats_for_user` and `reviews_for_user` RPCs exist on the server but iOS doesn't yet display reviews. Write-only on iOS by current product call.
 - **Apple App Site Association** for `rosterplus.io` — needed to make universal links actually deep-link into the iOS app. Code is ready; serve the JSON file at `https://rosterplus.io/.well-known/apple-app-site-association`.
 - **`UIBackgroundModes` for `remote-notification`** — silent push won't wake the app without it. Banner pushes still fire fine.
-- **Inject-able Supabase client** for `ProfileStore` — three optimistic-update tests are disabled because the real network rolls back the optimistic flip in the test environment.
-- **Localization** beyond `en` — RTL/Arabic for the GCC market.
+- **Localization sweep** — foundation is in place (24 keys + EN/AR + type-safe accessors). Next batches pull strings out of each view incrementally; no big-bang.
 - **Supabase advisor**: `admin_rate_counter` has RLS enabled but no policies. Likely intentional; one-line confirming comment.
 - **Supabase advisor**: leaked-password protection (HaveIBeenPwned) is disabled. Should be enabled given the platform handles money.
 
