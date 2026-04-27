@@ -2,7 +2,7 @@
 
 Single-page snapshot of all three repos and the live deploy. Updated by hand at meaningful moments (post-audit, post-incident, post-feature-batch).
 
-**Last updated: 2026-04-25.**
+**Last updated: 2026-04-27.**
 
 ---
 
@@ -11,7 +11,7 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 | Surface | State | Detail |
 |---|---|---|
 | Web — rosterplus.io | 🟢 Live | All 27 pages return 200. **Migrating Hostinger → Netlify (auto-deploy from `etchmuzik/rosterplusapp` `main`)** as of 2026-04-25; Hostinger runs in parallel as rollback. |
-| iOS — App Store | 🟡 TestFlight beta | Every primary surface Supabase-backed. Build green. Awaiting first TestFlight upload via `scripts/ship.sh` |
+| iOS — App Store | 🟡 TestFlight beta | Every primary surface Supabase-backed. Build green, **104 tests** passing. Push-tap deep-links + universal links wired (apple-app-site-association still pending server-side). Money is `Decimal` end-to-end. |
 | Supabase — `vgjmfpryobsuboukbemr` | 🟢 ACTIVE_HEALTHY | eu-west-1, Postgres 17, 17 tables (RLS enabled), 13 edge functions |
 | Shared contract — this repo | 🟢 In sync | Schema regenerated 2026-04-25 |
 
@@ -21,7 +21,7 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 
 | Repo | HEAD | What's there |
 |---|---|---|
-| [`rosterplusapp-ios`](https://github.com/etchmuzik/rosterplusapp-ios) | `27a79c3` | iOS app. SwiftUI, Swift 6.1, iOS 18+. 97 tests passing. |
+| [`rosterplusapp-ios`](https://github.com/etchmuzik/rosterplusapp-ios) | `3893814` | iOS app. SwiftUI, Swift 6.1, iOS 18 deployment target. 104 tests passing. |
 | [`rosterplusapp`](https://github.com/etchmuzik/rosterplusapp) | `32e6e75` | Web app. Static HTML/CSS/vanilla JS. 27 pages, no build step. |
 | [`rosterplus-shared`](https://github.com/etchmuzik/rosterplus-shared) | `873102e` | Cross-platform contract — Supabase types + RPC catalog + schema notes |
 
@@ -98,13 +98,34 @@ Full caller list: [`RPC_CONTRACT.md`](./RPC_CONTRACT.md).
 
 ---
 
+## What landed in the 2026-04-27 iOS batch
+
+Driven by the full A-to-Z audit at `workspace/docs/IOS-FULL-AUDIT-2026-04-27.md`:
+
+- **CalendarView back button** — was missing entirely; users entering Calendar from the artist dashboard had no way back. Fixed via `NavHeader`.
+- **Sign-out clears every user-scoped store** — Bookings, Inbox, Notifications, Payments, Profile, ArtistDetail, Timeline, Invitations, Contracts, Roster — so user B doesn't briefly see user A's data on shared devices. Realtime channels unsubscribed in the same flow.
+- **Push-notification taps deep-link** to the right `Route` via APNs payload `href` parsing. Foreground banners now surface (the OS used to swallow them when the app was open).
+- **Universal links + custom-scheme** (`https://rosterplus.io/...`, `rostr://...`) routed via a single `Route.parse(href:)` shared with notification taps. **Server-side `apple-app-site-association` still pending** — the iOS code is ready but URLs won't deep-link until the file's published.
+- **Pull-to-refresh** on every list (Bookings, Inbox, Notifications, Payments, Home, ArtistDashboard).
+- **scenePhase listener** — backgrounding for an hour and returning re-fetches stale data automatically.
+- **Offline banner** — `NWPathMonitor` with 1.5 s debounce, slides in from the top.
+- **Money → `Decimal` end-to-end** on `PaymentDTO.amount`, `BookingDTO.fee`, `ArtistDTO.baseFee`. Single `MoneyFormatter` for "AED 28K" / "AED 28,500" rendering.
+- **EPK share sheet** — was a no-op stub for waves; now wired to `UIActivityViewController` with the public web URL.
+- **Ratings dropped from artist + EPK + roster cards** per product. Reviews flow (post-event prompt, ReviewView, `create_review` RPC) is intact — we just don't show aggregate scores on profiles.
+- **`Route: CaseIterable + Sendable`** plus a `NavigationBackAffordanceTests` suite that walks every detail Route and asserts the matching view source contains `nav.pop()`. Guards the CalendarView regression-class going forward.
+- **iOS 18 deployment target**, `os.Logger` instead of `print()` (11 sites), `URL!` force-unwrap removed, `R.C.fg3` raised 0.38 → 0.48 to clear WCAG AA, decorative icons marked `accessibilityHidden`.
+
 ## Outstanding follow-ups (not P0)
 
-From the 2026-04-25 audit:
+From the 2026-04-25 + 2026-04-27 audits:
 
 - **Web inline-style cleanup** — `dashboard.html` has 39 `style=` attributes. Extract utility classes. ~2 hours.
 - **Web aria-label sweep** — `contracts.html` 4/15 buttons labeled, `dashboard.html` 2/5. Action surfaces firing money/legal events should all be labeled.
-- **Reviews UI on iOS public-profile screens** — `review_stats_for_user` and `reviews_for_user` RPCs exist on the server but iOS doesn't yet display reviews. Currently a write-only feature on iOS.
+- **Reviews UI on iOS public-profile screens** — `review_stats_for_user` and `reviews_for_user` RPCs exist on the server but iOS doesn't yet display reviews. Write-only on iOS by current product call.
+- **Apple App Site Association** for `rosterplus.io` — needed to make universal links actually deep-link into the iOS app. Code is ready; serve the JSON file at `https://rosterplus.io/.well-known/apple-app-site-association`.
+- **`UIBackgroundModes` for `remote-notification`** — silent push won't wake the app without it. Banner pushes still fire fine.
+- **Inject-able Supabase client** for `ProfileStore` — three optimistic-update tests are disabled because the real network rolls back the optimistic flip in the test environment.
+- **Localization** beyond `en` — RTL/Arabic for the GCC market.
 - **Supabase advisor**: `admin_rate_counter` has RLS enabled but no policies. Likely intentional; one-line confirming comment.
 - **Supabase advisor**: leaked-password protection (HaveIBeenPwned) is disabled. Should be enabled given the platform handles money.
 
