@@ -11,7 +11,7 @@
 //     --project-id vgjmfpryobsuboukbemr \
 //     --schema public > types/supabase.ts
 //
-// Last regenerated: 2026-04-25
+// Last regenerated: 2026-04-28
 
 export type Json =
   | string
