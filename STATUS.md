@@ -11,7 +11,7 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 | Surface | State | Detail |
 |---|---|---|
 | Web — rosterplus.io | 🟢 Live | All 27 pages return 200. **Migrating Hostinger → Netlify (auto-deploy from `etchmuzik/rosterplusapp` `main`)** as of 2026-04-25; Hostinger runs in parallel as rollback. |
-| iOS — App Store | 🟡 TestFlight beta | Every primary surface Supabase-backed. Build green, **108 tests** passing. Push-tap deep-links + universal links wired (apple-app-site-association still pending server-side). Money is `Decimal` end-to-end. AR localisation foundation shipped (24 high-traffic strings). |
+| iOS — App Store | 🟡 TestFlight beta | Every primary surface Supabase-backed. Build green, **109 tests** passing. Push-tap deep-links + universal links wired (apple-app-site-association still pending server-side). Money is `Decimal` end-to-end. AR localisation foundation shipped (24 high-traffic strings). |
 | Supabase — `vgjmfpryobsuboukbemr` | 🟢 ACTIVE_HEALTHY | eu-west-1, Postgres 17, 17 tables (RLS enabled), 13 edge functions |
 | Shared contract — this repo | 🟢 In sync | Schema regenerated 2026-04-25 |
 
@@ -21,7 +21,7 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 
 | Repo | HEAD | What's there |
 |---|---|---|
-| [`rosterplusapp-ios`](https://github.com/etchmuzik/rosterplusapp-ios) | `b542481` | iOS app. SwiftUI, Swift 6.1, iOS 18 deployment target. 108 tests passing. |
+| [`rosterplusapp-ios`](https://github.com/etchmuzik/rosterplusapp-ios) | `b542481` | iOS app. SwiftUI, Swift 6.1, iOS 18 deployment target. 109 tests passing. |
 | [`rosterplusapp`](https://github.com/etchmuzik/rosterplusapp) | `32e6e75` | Web app. Static HTML/CSS/vanilla JS. 27 pages, no build step. |
 | [`rosterplus-shared`](https://github.com/etchmuzik/rosterplus-shared) | `873102e` | Cross-platform contract — Supabase types + RPC catalog + schema notes |
 
@@ -129,8 +129,8 @@ Driven by the full A-to-Z audit at `workspace/docs/IOS-FULL-AUDIT-2026-04-27.md`
 Driven by the full pre-launch audit at `~/.claude/plans/full-audit-we-going-zippy-finch.md`:
 
 - **🔴 8 missing edge functions repatriated to git.** Pre-audit, only 5 of the 13 deployed edge functions lived in source control (`send-artist-onboarding-drip`, `send-booking-reminders`, `send-email`, `send-review-prompts`, `signup`). The other 8 — `admin-daily-digest`, `admin-user-action`, `health`, `profile-share`, `resend-webhook`, `send-password-reset`, `send-push`, `stripe-webhook` — were deployed but un-versioned, so a Supabase outage could have wiped them with no recovery path. Pulled all 8 into `web/supabase/functions/` via MCP and committed.
-- **🔴 iOS sign-out cross-user leak fixed.** AppRoot now resets `availabilityCheck`, `analytics`, and `push` stores on `signedOut` (previously only 10 of 13 stores). `PushStore.clearToken(for:)` is called with the previous user's UUID so the device-tokens row is removed — user B signing in on the same device no longer inherits user A's APNs registration. Added `reset()` methods to PushStore + AvailabilityCheckStore + AnalyticsStore. **108 tests still passing.**
-- **🔴 Apple App Site Association file added.** `web/.well-known/apple-app-site-association` ships with the right components map (bookings, threads, contracts, invoices, reviews, artists, epks, notifications), webcredentials, and `Content-Type: application/json` enforced via `netlify.toml`. **Operator must replace `__TEAMID__` placeholder with the real Apple Team ID before universal links resolve** — that's a one-line edit + commit, not in this batch because the team ID isn't in the repo.
+- **🔴 iOS sign-out cross-user leak fixed.** AppRoot now resets `availabilityCheck`, `analytics`, and `push` stores on `signedOut` (previously only 10 of 13 stores). `PushStore.clearToken(for:)` is called with the previous user's UUID so the device-tokens row is removed — user B signing in on the same device no longer inherits user A's APNs registration. Added `reset()` methods to PushStore + AvailabilityCheckStore + AnalyticsStore. **109 tests still passing.**
+- **🔴 Apple App Site Association file added.** `web/.well-known/apple-app-site-association` ships with the right components map (bookings, threads, contracts, invoices, reviews, artists, epks, notifications), webcredentials, and `Content-Type: application/json` enforced via `netlify.toml`. AppID `CHSAVJ5X6U.io.rosterplus.app` is wired in. Universal links unblock as soon as Netlify serves the file from the deploy.
 - **🟠 CSP `worker-src 'self'` added** to the Netlify CSP header — strict CSP validators stop flagging the SW registration.
 - **🟠 `shared/types/supabase.ts` regenerated** from the live schema (2026-04-28).
 - **STATUS.md correction:** `UIBackgroundModes = remote-notification` was already set in `ios/Config/Shared.xcconfig` before this audit. Previous STATUS listed it as pending — that was wrong.
@@ -139,13 +139,12 @@ Driven by the full pre-launch audit at `~/.claude/plans/full-audit-we-going-zipp
 
 From the 2026-04-25 + 2026-04-27 + 2026-04-28 audits:
 
-- **Apple Team ID for AASA** — `web/.well-known/apple-app-site-association` ships with `__TEAMID__` placeholder. Replace with the real ID before universal links go live.
 - **Supabase leaked-password protection (HaveIBeenPwned) is disabled.** Dashboard toggle at Auth → Settings → Password Strength. Required for launch given the platform handles money.
 - **Supabase advisor — 35 SECURITY DEFINER functions are anon-executable.** New finding from 2026-04-28 audit. Most are intentional (rate limiters need to be callable; admin RPCs internally check `is_admin()`). The 13 trigger-class functions (`audit_*`, `notify_*`, `log_*`, `handle_new_user`, `rls_auto_enable`) probably shouldn't be REST-exposed at all — they're invoked by triggers, not clients. Safe to defer (they no-op when called out of trigger context) but worth a `REVOKE EXECUTE ... FROM anon, authenticated` sweep.
 - **Web inline-style cleanup** — `web/admin.html` has 222 `style=` attributes (worst offender). Dashboard, artist-dashboard, settings, messages, profile, payments all 28+. Extract to `system.css` utility classes.
 - **Web aria-label sweep** — `contracts.html` 4/15 buttons labeled, `dashboard.html` 2/5. Action surfaces firing money/legal events should all be labeled.
 - **Reviews UI on iOS public-profile screens** — `review_stats_for_user` and `reviews_for_user` RPCs exist on the server but iOS doesn't yet display reviews. Write-only on iOS by current product call.
-- **Localization sweep** — foundation is in place (24 keys + EN/AR + type-safe accessors). 152 literal `Text("...")` strings remain across iOS views. Incremental sweep, no big-bang.
+- **Localization sweep** — foundation is in place (24 keys + EN/AR + type-safe accessors). 123 literal `Text("...")` strings remain across iOS views. Incremental sweep, no big-bang.
 - **Supabase advisor**: `admin_rate_counter` has RLS enabled but no policies. Documented as intentional via `COMMENT ON TABLE`; advisor still flags as INFO.
 
 ---
