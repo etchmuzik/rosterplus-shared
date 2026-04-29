@@ -1,7 +1,7 @@
 # RPC Contract
 
 This document is the authoritative list of which client calls which RPC
-or edge function. Last reviewed: **2026-04-25**.
+or edge function. Last reviewed: **2026-04-29**.
 
 Update this file when adding or removing a server-side function. Drift
 between iOS and web at the data layer was the root cause of the
@@ -27,31 +27,14 @@ Returns `{ available: bool, reason: text }[]` (always one row).
   source. As of 2026-04-25, both clients route through the RPC — the
   audit migrated web from inline-only to RPC-with-fallback.
 
-### `create_review(p_booking_id uuid, p_rating int, p_comment text)`
-Returns the new `reviews.id` as a uuid.
-
-- **iOS**: `Stores/ReviewStore.swift` — `ReviewView` Submit CTA
-  (added 2026-04-25).
-- **Web**: `assets/js/app.js` `DB.createReview` — booking-detail
-  modal's review form.
-- **Notes**: server-side enforces caller participated in the booking,
-  rating in `[1, 5]`, one review per `(booking, reviewer)`. Tag chips
-  on iOS are joined into the comment as a leading hashtag block to
-  match the web wire format.
-
-### `review_stats_for_user(p_user_id uuid)`
-Returns `{ avg_rating, review_count }`.
-
-- **iOS**: not yet wired (no public-profile-stats screen).
-- **Web**: `assets/js/app.js` `DB.getReviewStats` — artist profile
-  rating badge.
-
-### `reviews_for_user(p_user_id uuid, p_limit int)`
-Returns recent reviews.
-
-- **iOS**: not yet wired.
-- **Web**: `assets/js/app.js` `DB.getReviewsForUser` — artist profile
-  reviews list.
+### `create_review` / `review_stats_for_user` / `reviews_for_user` — DORMANT
+The reviews feature was removed from both clients on 2026-04-29 per
+product call. Server-side RPCs, the `reviews` table, the
+`send-review-prompts` edge function, and the existing review rows are
+preserved in case the decision reverses. Neither iOS nor web calls
+these RPCs anymore — anything appearing in advisor or RPC-call audits
+should not regress this. The cron job that triggered `send-review-prompts`
+is paused (`cron.alter_job(active := false)`).
 
 ### `claim_artist_profile(target_artist_id uuid)`
 Returns the claimed `artists` row. SECURITY DEFINER.
@@ -139,12 +122,15 @@ should not invoke them directly.
 - **Web**: admin console actions (impersonate, force-action).
 
 ### Cron-only / no client caller
-`admin-daily-digest`, `send-booking-reminders`, `send-review-prompts`,
+`admin-daily-digest`, `send-booking-reminders`,
 `send-artist-onboarding-drip`, `profile-share`, `send-push`,
 `stripe-webhook`, `resend-webhook`, `health`.
 
 These are invoked by pg_cron schedules or external webhooks. Client
 code does not call them directly.
+
+`send-review-prompts` exists but its cron schedule is paused as of
+2026-04-29 (reviews feature dormant, see entry above).
 
 ---
 

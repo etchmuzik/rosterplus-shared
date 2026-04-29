@@ -2,7 +2,7 @@
 
 Single-page snapshot of all three repos and the live deploy. Updated by hand at meaningful moments (post-audit, post-incident, post-feature-batch).
 
-**Last updated: 2026-04-28 (go-live audit).**
+**Last updated: 2026-04-29 (Supabase hardening + reviews dropped).**
 
 ---
 
@@ -75,9 +75,10 @@ artists, bookings, booking_events, contracts, payments, profiles, messages, noti
 signup, send-password-reset, send-email, send-booking-reminders, send-artist-onboarding-drip, send-review-prompts, admin-daily-digest, admin-user-action, send-push, profile-share, stripe-webhook, resend-webhook, health
 
 ### RPCs called by clients
-- **Both clients**: `check_availability`, `create_review`
-- **Web only**: `generate_invoice_number`, `review_stats_for_user`, `reviews_for_user`, `claim_artist_profile`, plus 11 admin RPCs (admin tooling is web-only by design)
+- **Both clients**: `check_availability`
+- **Web only**: `generate_invoice_number`, `claim_artist_profile`, plus 11 admin RPCs (admin tooling is web-only by design)
 - **iOS only**: *(none)*
+- **Dormant** (server-side intact, no client caller): `create_review`, `review_stats_for_user`, `reviews_for_user` — reviews UI removed from both clients on 2026-04-29.
 
 Full caller list: [`RPC_CONTRACT.md`](./RPC_CONTRACT.md).
 
@@ -89,7 +90,7 @@ Full caller list: [`RPC_CONTRACT.md`](./RPC_CONTRACT.md).
 
 - `send-booking-reminders` — hourly (24h before event)
 - `send-artist-onboarding-drip` — hourly (1h/24h/72h artist drip)
-- `send-review-prompts` — daily (3 days post-event)
+- `send-review-prompts` — **PAUSED 2026-04-29** (reviews UI removed from both clients; cron job kept disabled, edge function preserved)
 - `admin-daily-digest` — daily 05:00 UTC
 - `expire-stale-contracts` — daily 02:00 UTC
 - `prune-client-errors` — daily 03:00 UTC (drops > 30 days)
@@ -97,6 +98,11 @@ Full caller list: [`RPC_CONTRACT.md`](./RPC_CONTRACT.md).
 - `prune-cron-runs` — weekly Sunday 04:00 UTC (drops > 90 days)
 
 ---
+
+## What landed in the 2026-04-29 batch
+
+- **Reviews feature dropped from both clients** per product call. Server-side preserved (table, RPCs, edge function intact, cron paused) so the decision is reversible. iOS: deleted `Features/Review/`, deleted `Stores/ReviewStore.swift`, removed `Route.review`, removed BookingsView review-prompt banner, dropped the `.review` mock notification, dropped `Route.parse("/reviews/<id>")`. Web: removed `renderReviewCard` + `submitReview` from `booking-detail.html`, removed reviews list + rating badge + JSON-LD `aggregateRating` from `profile.html`, dropped `DB.createReview` / `DB.reviewStatsForUser` / `DB.reviewsForUser` from `app.js`, softened `index.html` "07 / TRUST" copy, removed "Post-event review prompts" from `status.html`. Tests still green: **108** (was 109 — one ReviewStore test deleted with the store). The `send-review-prompts` cron job is `cron.alter_job(active := false)`. The `.review` notification kind stays in the iOS `RowKind` enum + web timeline label map so any pre-existing rows still render gracefully (no-op tap on iOS, label only on web).
+- **Supabase — REVOKE EXECUTE on 10 trigger-class SECURITY DEFINER functions.** Migration `revoke_execute_on_trigger_class_functions` blocks REST callers from invoking `audit_artist_change`, `audit_artist_insert`, `handle_new_user`, `log_booking_status_change`, `notify_booking_event`, `notify_contract_event`, `notify_message_event`, `notify_payment_event`, `notify_push_on_notification`, `rls_auto_enable`. Triggers continue to fire (Postgres bypasses EXECUTE on trigger invocations). Advisor: 35 → 25 anon-executable warnings.
 
 ## What landed in the 2026-04-27 afternoon batch
 
@@ -143,7 +149,6 @@ From the 2026-04-25 + 2026-04-27 + 2026-04-28 audits:
 - **Supabase advisor — 25 SECURITY DEFINER functions are anon-executable** (down from 35 on 2026-04-29). Migration `revoke_execute_on_trigger_class_functions` revoked EXECUTE on 10 trigger-class functions: `audit_artist_change`, `audit_artist_insert`, `handle_new_user`, `log_booking_status_change`, `notify_booking_event`, `notify_contract_event`, `notify_message_event`, `notify_payment_event`, `notify_push_on_notification`, `rls_auto_enable`. Triggers continue to fire (Postgres bypasses EXECUTE checks for trigger invocations). The remaining 25 are all client-callable by design (rate limiters, admin RPCs that internally check `is_admin()`, public helpers like `check_availability` / `create_review` / `cron_health_*`).
 - **Web inline-style cleanup** — `web/admin.html` has 222 `style=` attributes (worst offender). Dashboard, artist-dashboard, settings, messages, profile, payments all 28+. Extract to `system.css` utility classes.
 - **Web aria-label sweep** — `contracts.html` 4/15 buttons labeled, `dashboard.html` 2/5. Action surfaces firing money/legal events should all be labeled.
-- **Reviews UI on iOS public-profile screens** — `review_stats_for_user` and `reviews_for_user` RPCs exist on the server but iOS doesn't yet display reviews. Write-only on iOS by current product call.
 - **Localization sweep** — foundation is in place (24 keys + EN/AR + type-safe accessors). 123 literal `Text("...")` strings remain across iOS views. Incremental sweep, no big-bang.
 - **Supabase advisor**: `admin_rate_counter` has RLS enabled but no policies. Documented as intentional via `COMMENT ON TABLE`; advisor still flags as INFO.
 
