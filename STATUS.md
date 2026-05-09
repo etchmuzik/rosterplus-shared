@@ -2,7 +2,7 @@
 
 Single-page snapshot of all three repos and the live deploy. Updated by hand at meaningful moments (post-audit, post-incident, post-feature-batch).
 
-**Last updated: 2026-04-29 (Supabase hardening + reviews dropped).**
+**Last updated: 2026-04-30 (EPK production fix + audit refresh).**
 
 ---
 
@@ -21,24 +21,18 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 
 | Repo | HEAD | What's there |
 |---|---|---|
-| [`rosterplusapp-ios`](https://github.com/etchmuzik/rosterplusapp-ios) | `b542481` | iOS app. SwiftUI, Swift 6.1, iOS 18 deployment target. 109 tests passing. |
-| [`rosterplusapp`](https://github.com/etchmuzik/rosterplusapp) | `32e6e75` | Web app. Static HTML/CSS/vanilla JS. 27 pages, no build step. |
-| [`rosterplus-shared`](https://github.com/etchmuzik/rosterplus-shared) | `873102e` | Cross-platform contract — Supabase types + RPC catalog + schema notes |
+| [`rosterplusapp-ios`](https://github.com/etchmuzik/rosterplusapp-ios) | `3af0608` | iOS app. SwiftUI, Swift 6.1, iOS 18 deployment target. 109 tests passing. |
+| [`rosterplusapp`](https://github.com/etchmuzik/rosterplusapp) | `1864df9` | Web app. Static HTML/CSS/vanilla JS. 27 pages, no build step. |
+| [`rosterplus-shared`](https://github.com/etchmuzik/rosterplus-shared) | `7251e1f` | Cross-platform contract — Supabase types + RPC catalog + schema notes |
 
 ---
 
 ## Live deploy state (rosterplus.io)
 
 - **HTTP**: 200 on every primary page
-- **Service worker on Hostinger build**: `rostr-a2d3719` (cross-origin requests pass through to respect page CSP)
-- **Last Hostinger deploy**: `a2d3719 feat: site-wide footer + homepage refresh reflecting Wave 5.x` (2026-04-25 16:05 UTC) — manual `npm run deploy` from a developer's Mac
-- **Commits on GitHub `main` not yet pushed to Hostinger** (this gap is what drove the Netlify migration — no auto-deploy meant manual deploy steps got missed):
-  - `02ce92a fix(audit): unify availability check on RPC + housekeeping`
-  - `58028a1 fix(epk): real bugs in the public EPK page + footer mislabel`
-  - `61d8df1 docs: link README to rosterplus-shared contract repo`
-  - `32e6e75 docs: README reflects current state`
-  - `a1f51d9 docs: link to STATUS.md in shared repo`
-  - `<next> feat: Netlify migration` (this commit)
+- **Service worker on Hostinger build**: `rostr-1864df9` (cross-origin requests pass through to respect page CSP)
+- **Last Hostinger deploy**: `1864df9 chore: fix --skip-checks flag, drop orphan reviews tests` (2026-04-30 09:24 UTC) — manual `bash scripts/deploy.sh --skip-checks` from a developer's Mac. Pulled in `ecc1e83` (EPK `?id=` param) and `b8cc8fc` (EPK duplicate-`const` parse-error) which had been sitting in `main` since 2026-04-25.
+- **Hostinger now in sync with `main`** as of 2026-04-30 09:24 UTC. The deploy gap that caused the 2026-04-30 "epk.html not working" report (5 days of fixes stuck in `main`) is closed, and the deploy script's `--skip-checks` flag now works as documented. Until the Netlify DNS cutover lands, every web change still needs a manual `bash scripts/deploy.sh` from a dev machine.
 
 ### Netlify migration (in flight)
 
@@ -61,7 +55,10 @@ The 2026-04-25 audit drove the most recent batch of work. Status of the P1 findi
 | iOS `ReviewView` had no Supabase backing | ✅ **Fixed** — `Stores/ReviewStore.swift` calls `create_review` RPC | iOS `336fc94` |
 | Web availability check used inline JS instead of RPC | ✅ **Fixed** — `DB.checkAvailability` now calls the same RPC iOS uses, with inline fallback | Web `02ce92a` |
 | iOS never wrote `profiles.onboarding_complete` | ✅ **Fixed** — `ProfileStore.markOnboardingComplete` called from `ProfileEditView` save | iOS `336fc94` |
-| EPK page broken (no `_epkData`, footer bounced promoters to login, lost inquiries on email failure) | ✅ **Fixed** — committed but waiting on Hostinger deploy | Web `58028a1` |
+| EPK page broken (no `_epkData`, footer bounced promoters to login, lost inquiries on email failure) | ✅ **Fixed and deployed** 2026-04-30 | Web `58028a1` |
+| EPK ignored `?id=` param so every share link bounced to /directory | ✅ **Fixed and deployed** 2026-04-30 | Web `ecc1e83` |
+| EPK duplicate `const` killed the inline script, page stuck on "Loading…" | ✅ **Fixed and deployed** 2026-04-30 | Web `b8cc8fc` |
+| `deploy.sh --skip-checks` flag rejected before reaching the parser; orphan reviews-tests blocked deploys | ✅ **Fixed** | Web `1864df9` |
 | Web SW broke site CSP | ✅ **Fixed and deployed** | Web `2521872` |
 
 ---
