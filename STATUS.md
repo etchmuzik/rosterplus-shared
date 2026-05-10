@@ -2,7 +2,7 @@
 
 Single-page snapshot of all three repos and the live deploy. Updated by hand at meaningful moments (post-audit, post-incident, post-feature-batch).
 
-**Last updated: 2026-05-11 (AASA file deployed, auto-deploy hardened).**
+**Last updated: 2026-05-11 (TestFlight build 4 shipped — push fix live).**
 
 ---
 
@@ -11,7 +11,7 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 | Surface | State | Detail |
 |---|---|---|
 | Web — rosterplus.io | 🟢 Live | All 27 pages return 200. **Migrating Hostinger → Netlify (auto-deploy from `etchmuzik/rosterplusapp` `main`)** as of 2026-04-25; Hostinger runs in parallel as rollback. |
-| iOS — App Store | 🟡 TestFlight beta | Every primary surface Supabase-backed. Build green, **109 tests** passing. Push-tap deep-links + universal links wired (apple-app-site-association still pending server-side). Money is `Decimal` end-to-end. AR localisation foundation shipped (24 high-traffic strings). |
+| iOS — App Store | 🟡 TestFlight beta | Every primary surface Supabase-backed. Build green, **108 tests** passing. Build 4 on TestFlight 2026-05-11 with the `UIBackgroundModes` fix — silent push now works. AASA live at `/.well-known/apple-app-site-association`; universal links into the app dispatch for 9 path patterns. Money is `Decimal` end-to-end. AR localisation foundation shipped (24 high-traffic strings, sweep ongoing). |
 | Supabase — `vgjmfpryobsuboukbemr` | 🟢 ACTIVE_HEALTHY | eu-west-1, Postgres 17, 17 tables (RLS enabled), 13 edge functions |
 | Shared contract — this repo | 🟢 In sync | Schema regenerated 2026-04-25 |
 
@@ -21,7 +21,7 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 
 | Repo | HEAD | What's there |
 |---|---|---|
-| [`rosterplusapp-ios`](https://github.com/etchmuzik/rosterplusapp-ios) | `8f666a4` | iOS app. SwiftUI, Swift 6.1, iOS 18 deployment target. 108 tests passing. |
+| [`rosterplusapp-ios`](https://github.com/etchmuzik/rosterplusapp-ios) | `ff14bda` | iOS app. SwiftUI, Swift 6.1, iOS 18 deployment target. 108 tests passing. |
 | [`rosterplusapp`](https://github.com/etchmuzik/rosterplusapp) | `489957e` | Web app. Static HTML/CSS/vanilla JS. 27 pages, no build step. |
 | [`rosterplus-shared`](https://github.com/etchmuzik/rosterplus-shared) | `20a7369` | Cross-platform contract — Supabase types + RPC catalog + schema notes |
 
