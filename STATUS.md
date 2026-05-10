@@ -21,9 +21,9 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 
 | Repo | HEAD | What's there |
 |---|---|---|
-| [`rosterplusapp-ios`](https://github.com/etchmuzik/rosterplusapp-ios) | `3af0608` | iOS app. SwiftUI, Swift 6.1, iOS 18 deployment target. 109 tests passing. |
-| [`rosterplusapp`](https://github.com/etchmuzik/rosterplusapp) | `1864df9` | Web app. Static HTML/CSS/vanilla JS. 27 pages, no build step. |
-| [`rosterplus-shared`](https://github.com/etchmuzik/rosterplus-shared) | `7251e1f` | Cross-platform contract — Supabase types + RPC catalog + schema notes |
+| [`rosterplusapp-ios`](https://github.com/etchmuzik/rosterplusapp-ios) | `8f666a4` | iOS app. SwiftUI, Swift 6.1, iOS 18 deployment target. 108 tests passing. |
+| [`rosterplusapp`](https://github.com/etchmuzik/rosterplusapp) | `489957e` | Web app. Static HTML/CSS/vanilla JS. 27 pages, no build step. |
+| [`rosterplus-shared`](https://github.com/etchmuzik/rosterplus-shared) | `20a7369` | Cross-platform contract — Supabase types + RPC catalog + schema notes |
 
 ---
 
