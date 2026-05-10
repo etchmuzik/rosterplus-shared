@@ -2,7 +2,7 @@
 
 Single-page snapshot of all three repos and the live deploy. Updated by hand at meaningful moments (post-audit, post-incident, post-feature-batch).
 
-**Last updated: 2026-04-30 (EPK production fix + audit refresh).**
+**Last updated: 2026-05-11 (AASA file deployed, auto-deploy hardened).**
 
 ---
 
