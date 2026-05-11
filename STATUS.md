@@ -2,7 +2,11 @@
 
 Single-page snapshot of all three repos and the live deploy. Updated by hand at meaningful moments (post-audit, post-incident, post-feature-batch).
 
-**Last updated: 2026-05-11 (TestFlight build 4 shipped — push fix live).**
+**Last updated: 2026-05-12 (🚀 Launch audit cleared — going live).**
+
+> See [`workspace/docs/AUDIT-2026-05-12-LAUNCH.md`](../workspace/docs/AUDIT-2026-05-12-LAUNCH.md)
+> for the full pre-launch verification (web smoke, backend health,
+> security headers, SEO, cron, advisors, error patterns).
 
 ---
 
@@ -10,9 +14,9 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 
 | Surface | State | Detail |
 |---|---|---|
-| Web — rosterplus.io | 🟢 Live | All 27 pages return 200. **Migrating Hostinger → Netlify (auto-deploy from `etchmuzik/rosterplusapp` `main`)** as of 2026-04-25; Hostinger runs in parallel as rollback. |
-| iOS — App Store | 🟡 TestFlight beta | Every primary surface Supabase-backed. Build green, **108 tests** passing. Build 4 on TestFlight 2026-05-11 with the `UIBackgroundModes` fix — silent push now works. AASA live at `/.well-known/apple-app-site-association`; universal links into the app dispatch for 9 path patterns. Money is `Decimal` end-to-end. AR localisation foundation shipped (24 high-traffic strings, sweep ongoing). |
-| Supabase — `vgjmfpryobsuboukbemr` | 🟢 ACTIVE_HEALTHY | eu-west-1, Postgres 17, 17 tables (RLS enabled), 13 edge functions |
+| Web — rosterplus.io | 🟢 **Launch-ready** | All 27 pages return 200. Live SHA matches origin matches local. SW cache stamp `rostr-a32c64e` matches `window.ROSTR_VERSION`. HSTS/CSP/HTTP3 healthy. 0 client_errors in last 24h. Privacy policy revised for App Store sub-processor disclosure. |
+| iOS — App Store | 🟡 TestFlight beta | Every primary surface Supabase-backed. Build green, **108 tests** passing. Build 4 on TestFlight 2026-05-11 with the `UIBackgroundModes` fix — silent push now works. AASA live at `/.well-known/apple-app-site-association`; universal links into the app dispatch for 9 path patterns. `ITSAppUsesNonExemptEncryption=false` baked into Info.plist so ASC never prompts. App Store metadata draft at `workspace/docs/APP_STORE_METADATA.md`. Money is `Decimal` end-to-end. AR localisation foundation shipped (24 high-traffic strings, sweep ongoing). |
+| Supabase — `vgjmfpryobsuboukbemr` | 🟢 ACTIVE_HEALTHY | eu-west-1, Postgres 17, 17 tables (RLS enabled), 13 edge functions. **Zero errors in 365 cron invocations over last 7 days.** |
 | Shared contract — this repo | 🟢 In sync | Schema regenerated 2026-04-25 |
 
 ---
@@ -21,18 +25,20 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 
 | Repo | HEAD | What's there |
 |---|---|---|
-| [`rosterplusapp-ios`](https://github.com/etchmuzik/rosterplusapp-ios) | `ff14bda` | iOS app. SwiftUI, Swift 6.1, iOS 18 deployment target. 108 tests passing. |
-| [`rosterplusapp`](https://github.com/etchmuzik/rosterplusapp) | `489957e` | Web app. Static HTML/CSS/vanilla JS. 27 pages, no build step. |
-| [`rosterplus-shared`](https://github.com/etchmuzik/rosterplus-shared) | `20a7369` | Cross-platform contract — Supabase types + RPC catalog + schema notes |
+| [`rosterplusapp-ios`](https://github.com/etchmuzik/rosterplusapp-ios) | `214ce9f` | iOS app. SwiftUI, Swift 6.1, iOS 18 deployment target. 108 tests passing. Build 4 on TestFlight. |
+| [`rosterplusapp`](https://github.com/etchmuzik/rosterplusapp) | `a32c64e` | Web app. Static HTML/CSS/vanilla JS. 27 pages, no build step. **Launch-ready 2026-05-12.** |
+| [`rosterplus-shared`](https://github.com/etchmuzik/rosterplus-shared) | `02ee10e` | Cross-platform contract — Supabase types + RPC catalog + schema notes |
 
 ---
 
 ## Live deploy state (rosterplus.io)
 
-- **HTTP**: 200 on every primary page
-- **Service worker on Hostinger build**: `rostr-1864df9` (cross-origin requests pass through to respect page CSP)
-- **Last Hostinger deploy**: `1864df9 chore: fix --skip-checks flag, drop orphan reviews tests` (2026-04-30 09:24 UTC) — manual `bash scripts/deploy.sh --skip-checks` from a developer's Mac. Pulled in `ecc1e83` (EPK `?id=` param) and `b8cc8fc` (EPK duplicate-`const` parse-error) which had been sitting in `main` since 2026-04-25.
-- **Hostinger now in sync with `main`** as of 2026-04-30 09:24 UTC. The deploy gap that caused the 2026-04-30 "epk.html not working" report (5 days of fixes stuck in `main`) is closed, and the deploy script's `--skip-checks` flag now works as documented. Until the Netlify DNS cutover lands, every web change still needs a manual `bash scripts/deploy.sh` from a dev machine.
+- **HTTP**: 200 on every public page (verified 2026-05-12 across all 27 HTML routes)
+- **Live build SHA**: `a32c64e` (matches `origin/main` and local `HEAD`). Verified via `window.ROSTR_VERSION` and `sw.js CACHE_NAME` both equal `a32c64e`.
+- **Last deploy**: `a32c64e privacy: disclose every sub-processor + data type for App Store review` (2026-05-11 22:03 UTC). Pre-launch revision of `privacy.html` with full sub-processor disclosure (Stripe, Sentry, Plausible, APNs, Hostinger), required for Apple's App Store reviewer cross-check.
+- **Security headers**: CSP locked to 3 known origins, HSTS preloaded 1y, X-Frame-Options DENY, Permissions-Policy denies camera/microphone/geolocation. HTTP/3 (alt-svc).
+- **Backend (Supabase) health**: ACTIVE_HEALTHY. 365 cron invocations in 7 days, **zero errors**. 0 client_errors in last 24h. Edge function `/health` returns 200. Anon REST `artists?select=count` returns 200.
+- **Deploy pipeline**: `npm run ship` (push+deploy) plus pre-push git hook means every push from this machine is auto-deployed. Deploy gap that caused the 2026-04-30 EPK incident is closed.
 
 ### Netlify migration (in flight)
 
