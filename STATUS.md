@@ -14,8 +14,8 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 
 | Surface | State | Detail |
 |---|---|---|
-| Web — rosterplus.io | 🟢 **Launch-ready** | All 28 pages return 200 (added `/press.html` + `/link.html`). Live SHA `e6bb6ef` matches origin matches local. SW cache + `window.ROSTR_VERSION` stamped each push. HSTS/CSP/HTTP3 healthy. 0 client_errors in last 24h. Privacy policy revised for App Store sub-processor disclosure. **Homepage now uses real roster faces** (avatar_url → `/assets/images/artists/<handle>.jpg` → initials). Per-artist Linktree live at `/a/<handle>`. Operator-set "Artist of the week" via `featured_until`. Plausible click tracking on `/link` + `/a/*` CTAs. |
-| iOS — App Store | 🟡 TestFlight beta | Every primary surface Supabase-backed. Build green, **108 tests** passing. Build 4 on TestFlight 2026-05-11 with the `UIBackgroundModes` fix — silent push now works. AASA live at `/.well-known/apple-app-site-association`; universal links into the app dispatch for 9 path patterns. `ITSAppUsesNonExemptEncryption=false` baked into Info.plist so ASC never prompts. App Store metadata draft at `workspace/docs/APP_STORE_METADATA.md`. Money is `Decimal` end-to-end. AR localisation foundation shipped (24 high-traffic strings, sweep ongoing). |
+| Web — rosterplus.io | 🟢 **Launch-ready** | All 28 pages return 200 (added `/press.html` + `/link.html`). Live SHA `1d9d3e2` matches origin matches local. SW cache + `window.ROSTR_VERSION` stamped each push. HSTS/CSP/HTTP3 healthy. 0 client_errors in last 24h. Privacy policy revised for App Store sub-processor disclosure. **Homepage now uses real roster faces** (avatar_url → `/assets/images/artists/<handle>.jpg` → initials). Per-artist Linktree live at `/a/<handle>`. Operator-set "Artist of the week" via `featured_until`. Plausible click tracking on `/link` + `/a/*` CTAs. **`admin.html` inline-style debt cut from 148 → 38** (77 new utility classes in `system.css`). |
+| iOS — App Store | 🟡 TestFlight beta | Every primary surface Supabase-backed. Build green, **108 tests** passing. Build 4 on TestFlight 2026-05-11 with the `UIBackgroundModes` fix — silent push now works. AASA live at `/.well-known/apple-app-site-association`; universal links into the app dispatch for 9 path patterns. `ITSAppUsesNonExemptEncryption=false` baked into Info.plist so ASC never prompts. App Store metadata draft at `workspace/docs/APP_STORE_METADATA.md`. Money is `Decimal` end-to-end. **AR localisation at 66 keys (was 24/36 in prior audits)** — over halfway to the literal-`Text()` count, sweep continues incrementally. |
 | Supabase — `vgjmfpryobsuboukbemr` | 🟢 ACTIVE_HEALTHY | eu-west-1, Postgres 17, 17 tables (RLS enabled), 13 edge functions. 11 active verified artists on roster. **Zero errors in 365+ cron invocations over last 7 days.** |
 | Shared contract — this repo | 🟢 In sync | Schema regenerated 2026-04-28. No new RPCs / edge functions in polish batch — `handle` + `featured_until` are direct PostgREST writes against `artists`. |
 
@@ -25,8 +25,8 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 
 | Repo | HEAD | What's there |
 |---|---|---|
-| [`rosterplusapp-ios`](https://github.com/etchmuzik/rosterplusapp-ios) | `c787d5f` | iOS app. SwiftUI, Swift 6.1, iOS 18 deployment target. 108 tests passing. Build 4 on TestFlight. |
-| [`rosterplusapp`](https://github.com/etchmuzik/rosterplusapp) | `e6bb6ef` | Web app. Static HTML/CSS/vanilla JS. **28 pages**, no build step. **Launch-ready, polish batch shipped 2026-05-12.** |
+| [`rosterplusapp-ios`](https://github.com/etchmuzik/rosterplusapp-ios) | `291b2bb` | iOS app. SwiftUI, Swift 6.1, iOS 18 deployment target. 108 tests passing. Build 4 on TestFlight. Localizable.xcstrings now at 66 EN+AR keys. |
+| [`rosterplusapp`](https://github.com/etchmuzik/rosterplusapp) | `1d9d3e2` | Web app. Static HTML/CSS/vanilla JS. **28 pages**, no build step. **Launch-ready, polish batch + admin sweep shipped 2026-05-12.** |
 | [`rosterplus-shared`](https://github.com/etchmuzik/rosterplus-shared) | `fb8910a` | Cross-platform contract — Supabase types + RPC catalog + schema notes |
 
 ---
@@ -34,8 +34,8 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 ## Live deploy state (rosterplus.io)
 
 - **HTTP**: 200 on every public page (verified 2026-05-12 across all 28 HTML routes — `/press.html` and `/link.html` added in polish batch)
-- **Live build SHA**: `e6bb6ef` (matches `origin/main` and local `HEAD`).
-- **Last deploy**: `e6bb6ef chore(homepage): drop static placeholders/* srcs from featured + gallery` (2026-05-12 PM). Markup now ships neutral (initials-only tiles, src-less featured `<img>`); JS hydration is the single source of truth, setting srcs from `artistPhotoSrc()` once `DB.getArtists` resolves.
+- **Live build SHA**: `1d9d3e2` (matches `origin/main` and local `HEAD`).
+- **Last deploy**: `1d9d3e2 refactor(admin): extract repeated inline styles to utility classes` (2026-05-12 evening). admin.html debt cut from 148 → 38 inline `style=` attrs; 77 new utility classes in `system.css`. No visual change.
 - **Security headers**: CSP locked to 3 known origins, HSTS preloaded 1y, X-Frame-Options DENY, Permissions-Policy denies camera/microphone/geolocation. HTTP/3 (alt-svc).
 - **Backend (Supabase) health**: ACTIVE_HEALTHY. 365+ cron invocations in 7 days, **zero errors**. 0 client_errors in last 24h. Edge function `/health` returns 200. Anon REST `artists?select=count` returns 200.
 - **Deploy pipeline**: `npm run ship` (push+deploy) plus pre-push git hook means every push from this machine is auto-deployed. Deploy gap that caused the 2026-04-30 EPK incident is closed.
@@ -122,6 +122,10 @@ Driven by the punch list at `~/.claude/plans/now-make-your-final-swift-sunrise.m
 
 Photo coverage today: 9 of 11 active artists have a portrait on disk (`ashkan-k, borey, epi, etch, highlite, imen, katrin-losa, lith-k, sarabi`). The two without (`anturage, eva-kim`) gracefully fall through to initials.
 
+**Plus two follow-on cleanups (2026-05-12 evening):**
+- **Web — admin.html inline-style sweep.** 148 `style="..."` attributes → 38 (target was <50). 77 new utility classes added under a "Admin console utilities — 2026-05-12" header in `system.css`. Generic ones (`.font-mono`, `.flex-center`, `.stack-sm`, `.mb-space-md`, `.section-h3`, etc.) are reusable on other pages; admin-scoped ones (`.admin-verify-card`, `.csv-drop`, `.cron-row`, `.audit-row`, etc.) keep the console-specific layout self-documenting. What stayed inline: per-table `grid-template-columns` (each unique to its table), JS-interpolated `color: ${...}` expressions, and a handful of one-off micro-tweaks where extracting would add noise without reducing duplication. No visual change — pure maintainability win.
+- **iOS — localisation sweep, +30 keys.** `Localizable.xcstrings` grew from 36 → **66 entries** with EN + AR for: 5 booking-CTA strings (`cta.requestBooking`, `cta.messageArtist`, `cta.viewContract`, `cta.viewInvoice`, `cta.sendMessage`), 4 common verbs (`common.edit / skip / tryAgain / all`), 6 section headers (`section.about / press / recentSets / pastPerformances / upcomingGigs / bookingRequests`), 6 empty-state strings (upcoming/past gigs, press, recent sets, payments title+body), 4 error toasts (bookings / payments / notifications / roster load failures), 2 availability strings (`baseFee`, `tourMode`), 2 booking strings (`timeline`, `empty.timeline`), and `notifications.markRead`. Added `S.CTA.*` / `S.Section.*` / `S.State.*` / `S.Availability.*` / `S.Notifications.*` accessor groups in `Strings.swift`. New `PrimaryButton(_ resource: LocalizedStringResource, ...)` overload so CTAs can pass `S.CTA.requestBooking` directly. `LocalizationTests.keysToCheck` extended; **108 tests still pass** end-to-end. Brings sweep to 66 of ~123 literal `Text()` strings — over halfway.
+
 ## What landed in the 2026-05-12 launch-audit batch
 
 (Items from the morning audit, before the polish batch above.)
@@ -188,9 +192,9 @@ From the 2026-04-25 + 2026-04-27 + 2026-04-28 audits, re-counted 2026-05-12:
 
 **Code-side, low priority:**
 - **Supabase advisor — 25 SECURITY DEFINER functions are anon-executable** (down from 35 on 2026-04-29). The remaining 25 are all client-callable by design (rate limiters, admin RPCs that internally check `is_admin()`, public helpers like `check_availability` / `create_review` / `cron_health_*`).
-- **Web inline-style cleanup** — re-counted 2026-05-12: `admin.html` 148, `dashboard.html` 20, `artist-dashboard.html` ~30, `settings.html` / `messages.html` / `profile.html` / `payments.html` similar. Was 222/28 in the audit — prior batches chipped at it without updating STATUS. Extract to `system.css` utility classes when touching these files.
+- **Web inline-style cleanup** — `admin.html` is now **38** (was 148 → swept in `1d9d3e2`). `dashboard.html` 20, `artist-dashboard.html` ~30, `settings.html` / `messages.html` / `profile.html` / `payments.html` similar. Extract to `system.css` utility classes when touching these files — the new admin-batch added 77 reusable classes that should cover most of what these pages need too.
 - **Web aria-label sweep** — re-verified 2026-05-12: the contracts.html "4/15 unlabeled" and dashboard.html "2/5 unlabeled" findings are **false positives**. Every flagged button has a visible text label ("Close", "Cancel", "Generate Contract", "All", "Signed", etc.) which screen readers read by default. `aria-label` would actually fight the visible text. Treat as resolved.
-- **Localization sweep** — foundation is in place (24 keys + EN/AR + type-safe accessors). 123 literal `Text("...")` strings remain across iOS views. Incremental sweep, no big-bang.
+- **Localization sweep** — at **66 keys** EN/AR (was 24/36 in prior audits). 30 strings ported in `291b2bb` (CTAs, section headers, empty states, error toasts). Roughly 57 literal `Text("...")` strings remain across iOS views. Incremental sweep continues; the remaining ones include interpolated strings (`Text("Hi, \(name)")`) that need the format-string pattern, not flat keys.
 - **Supabase advisor**: `admin_rate_counter` has RLS enabled but no policies. Documented as intentional via `COMMENT ON TABLE`; advisor still flags as INFO.
 
 ---
