@@ -2,7 +2,7 @@
 
 Single-page snapshot of all three repos and the live deploy. Updated by hand at meaningful moments (post-audit, post-incident, post-feature-batch).
 
-**Last updated: 2026-05-12 (🚀 Launch audit cleared — going live).**
+**Last updated: 2026-05-12 PM (post-polish-batch — roster faces on homepage, /a/<handle>, /link, /press, operator-set featured, click tracking, handle slugs).**
 
 > See [`workspace/docs/AUDIT-2026-05-12-LAUNCH.md`](../workspace/docs/AUDIT-2026-05-12-LAUNCH.md)
 > for the full pre-launch verification (web smoke, backend health,
@@ -14,10 +14,10 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 
 | Surface | State | Detail |
 |---|---|---|
-| Web — rosterplus.io | 🟢 **Launch-ready** | All 27 pages return 200. Live SHA matches origin matches local. SW cache stamp `rostr-a32c64e` matches `window.ROSTR_VERSION`. HSTS/CSP/HTTP3 healthy. 0 client_errors in last 24h. Privacy policy revised for App Store sub-processor disclosure. |
+| Web — rosterplus.io | 🟢 **Launch-ready** | All 28 pages return 200 (added `/press.html` + `/link.html`). Live SHA `e6bb6ef` matches origin matches local. SW cache + `window.ROSTR_VERSION` stamped each push. HSTS/CSP/HTTP3 healthy. 0 client_errors in last 24h. Privacy policy revised for App Store sub-processor disclosure. **Homepage now uses real roster faces** (avatar_url → `/assets/images/artists/<handle>.jpg` → initials). Per-artist Linktree live at `/a/<handle>`. Operator-set "Artist of the week" via `featured_until`. Plausible click tracking on `/link` + `/a/*` CTAs. |
 | iOS — App Store | 🟡 TestFlight beta | Every primary surface Supabase-backed. Build green, **108 tests** passing. Build 4 on TestFlight 2026-05-11 with the `UIBackgroundModes` fix — silent push now works. AASA live at `/.well-known/apple-app-site-association`; universal links into the app dispatch for 9 path patterns. `ITSAppUsesNonExemptEncryption=false` baked into Info.plist so ASC never prompts. App Store metadata draft at `workspace/docs/APP_STORE_METADATA.md`. Money is `Decimal` end-to-end. AR localisation foundation shipped (24 high-traffic strings, sweep ongoing). |
-| Supabase — `vgjmfpryobsuboukbemr` | 🟢 ACTIVE_HEALTHY | eu-west-1, Postgres 17, 17 tables (RLS enabled), 13 edge functions. **Zero errors in 365 cron invocations over last 7 days.** |
-| Shared contract — this repo | 🟢 In sync | Schema regenerated 2026-04-25 |
+| Supabase — `vgjmfpryobsuboukbemr` | 🟢 ACTIVE_HEALTHY | eu-west-1, Postgres 17, 17 tables (RLS enabled), 13 edge functions. 11 active verified artists on roster. **Zero errors in 365+ cron invocations over last 7 days.** |
+| Shared contract — this repo | 🟢 In sync | Schema regenerated 2026-04-28. No new RPCs / edge functions in polish batch — `handle` + `featured_until` are direct PostgREST writes against `artists`. |
 
 ---
 
@@ -25,19 +25,19 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 
 | Repo | HEAD | What's there |
 |---|---|---|
-| [`rosterplusapp-ios`](https://github.com/etchmuzik/rosterplusapp-ios) | `214ce9f` | iOS app. SwiftUI, Swift 6.1, iOS 18 deployment target. 108 tests passing. Build 4 on TestFlight. |
-| [`rosterplusapp`](https://github.com/etchmuzik/rosterplusapp) | `a32c64e` | Web app. Static HTML/CSS/vanilla JS. 27 pages, no build step. **Launch-ready 2026-05-12.** |
-| [`rosterplus-shared`](https://github.com/etchmuzik/rosterplus-shared) | `02ee10e` | Cross-platform contract — Supabase types + RPC catalog + schema notes |
+| [`rosterplusapp-ios`](https://github.com/etchmuzik/rosterplusapp-ios) | `c787d5f` | iOS app. SwiftUI, Swift 6.1, iOS 18 deployment target. 108 tests passing. Build 4 on TestFlight. |
+| [`rosterplusapp`](https://github.com/etchmuzik/rosterplusapp) | `e6bb6ef` | Web app. Static HTML/CSS/vanilla JS. **28 pages**, no build step. **Launch-ready, polish batch shipped 2026-05-12.** |
+| [`rosterplus-shared`](https://github.com/etchmuzik/rosterplus-shared) | `fb8910a` | Cross-platform contract — Supabase types + RPC catalog + schema notes |
 
 ---
 
 ## Live deploy state (rosterplus.io)
 
-- **HTTP**: 200 on every public page (verified 2026-05-12 across all 27 HTML routes)
-- **Live build SHA**: `a32c64e` (matches `origin/main` and local `HEAD`). Verified via `window.ROSTR_VERSION` and `sw.js CACHE_NAME` both equal `a32c64e`.
-- **Last deploy**: `a32c64e privacy: disclose every sub-processor + data type for App Store review` (2026-05-11 22:03 UTC). Pre-launch revision of `privacy.html` with full sub-processor disclosure (Stripe, Sentry, Plausible, APNs, Hostinger), required for Apple's App Store reviewer cross-check.
+- **HTTP**: 200 on every public page (verified 2026-05-12 across all 28 HTML routes — `/press.html` and `/link.html` added in polish batch)
+- **Live build SHA**: `e6bb6ef` (matches `origin/main` and local `HEAD`).
+- **Last deploy**: `e6bb6ef chore(homepage): drop static placeholders/* srcs from featured + gallery` (2026-05-12 PM). Markup now ships neutral (initials-only tiles, src-less featured `<img>`); JS hydration is the single source of truth, setting srcs from `artistPhotoSrc()` once `DB.getArtists` resolves.
 - **Security headers**: CSP locked to 3 known origins, HSTS preloaded 1y, X-Frame-Options DENY, Permissions-Policy denies camera/microphone/geolocation. HTTP/3 (alt-svc).
-- **Backend (Supabase) health**: ACTIVE_HEALTHY. 365 cron invocations in 7 days, **zero errors**. 0 client_errors in last 24h. Edge function `/health` returns 200. Anon REST `artists?select=count` returns 200.
+- **Backend (Supabase) health**: ACTIVE_HEALTHY. 365+ cron invocations in 7 days, **zero errors**. 0 client_errors in last 24h. Edge function `/health` returns 200. Anon REST `artists?select=count` returns 200.
 - **Deploy pipeline**: `npm run ship` (push+deploy) plus pre-push git hook means every push from this machine is auto-deployed. Deploy gap that caused the 2026-04-30 EPK incident is closed.
 
 ### Netlify migration (in flight)
@@ -74,6 +74,10 @@ The 2026-04-25 audit drove the most recent batch of work. Status of the P1 findi
 ### Tables (17, all RLS-enabled)
 artists, bookings, booking_events, contracts, payments, profiles, messages, notifications, reviews, invitations, venues, device_tokens, email_events, client_errors, cron_runs, admin_audit_log, admin_rate_counter
 
+**Recent additions to `artists`** (2026-05-12):
+- `handle` (`text`, partial-unique on `LOWER(handle) WHERE profile_id IS NULL AND deleted_at IS NULL`) — kebab-case slug powering `/a/<handle>` per-artist Linktree pages. CHECK constraint `[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])?`. Migration `20260512_artists_handle.sql` backfilled all existing rows from `stage_name` with `-2`/`-3` disambiguation.
+- `featured_until` (`timestamptz`) — operator-set "Artist of the week" expiry. Set via admin UI on `/admin.html`; consumed by `/link.html` (overrides ISO-week fallback) and `/index.html` (featured card pick). Migration `20260512_artists_featured_until.sql`. Partial index on `(featured_until DESC) WHERE featured_until IS NOT NULL AND deleted_at IS NULL` (can't put `now()` in predicate — must be IMMUTABLE).
+
 ### Edge functions (13 active)
 signup, send-password-reset, send-email, send-booking-reminders, send-artist-onboarding-drip, send-review-prompts, admin-daily-digest, admin-user-action, send-push, profile-share, stripe-webhook, resend-webhook, health
 
@@ -101,6 +105,33 @@ Full caller list: [`RPC_CONTRACT.md`](./RPC_CONTRACT.md).
 - `prune-cron-runs` — weekly Sunday 04:00 UTC (drops > 90 days)
 
 ---
+
+## What landed in the 2026-05-12 polish batch
+
+Driven by the punch list at `~/.claude/plans/now-make-your-final-swift-sunrise.md`. Five items closed:
+
+- **#10 — Handle-edit UI on `artist-profile-edit.html`.** Artists can now change their `/a/<handle>` slug. Share-link card grew an editable handle input with a static `https://rosterplus.io/a/` prefix label, format validation against `^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])?$`, uniqueness check, and a reserved-word denylist (`a`, `admin`, `api`, `link`, `press`, etc.) so artists can't claim a route that collides with the app. `DB.updateArtistProfile` allowlist extended to accept `handle`.
+- **#11 — Operator-set featured artist.** New `featured_until TIMESTAMPTZ` column on `artists`. Admin UI on `/admin.html` shows a "Feature 24h / 7d / 30d" trio per artist row, switching to "★ Unfeature (Xd left)" once active. `DB.adminSetFeatured(artistId, untilIso)` and `DB.getCurrentlyFeatured()` added. `/link.html` two-stage resolution: operator-set wins, ISO-week rotation is the fallback so the homepage never has an empty featured card. `/index.html` featured-card pick prefers any currently-featured artist.
+- **#12 — Plausible click tracking.** Tiny `trackLink(eventName)` / `trackArtistCta(eventName, handle)` helpers added to `/link.html` and `/a.html` — explicit `window.plausible(...)` calls, no DOM-attribute approach (matches the existing `app.js:710` pattern). 8 CTAs on `/link.html` (4 buttons + 4 social icons) and 7 CTAs on `/a.html` (3 buttons + per-channel social) now report. Artist handle passed as a Plausible prop so reports break down per artist.
+- **#14 — `/press.html` stub.** Honest empty state ("Nothing to show — yet"); mailto CTA to `hi@rosterplus.io` for journalists; sitemap entry at priority 0.4; homepage feature card 07/TRUST got the "Press coverage →" link back.
+- **#15 — Directory count strip.** `/directory.html` now shows "11 verified artists · 8 cities" above the grid (computed from filtered view, so the count drops as you filter by city). `.dir-stats-strip` added to `system.css`.
+
+**Plus the roster-on-homepage finish (2026-05-12 PM):**
+- Shared `artistPhotoSrc(a)` helper with three-tier chain: `profiles.avatar_url` → `/assets/images/artists/<handle>.jpg` → initials. Used by both the featured-card avatar AND the hero background, AND every gallery tile. Removed all six static `placeholders/gallery-N.jpg` references and the static `placeholders/hero-featured.jpg` / `featured-avatar.jpg` srcs — markup ships neutral, JS upgrades on hydration.
+- `DB.getArtists` + `getArtistById` now surface `handle`, `stage_name`, `featured_until` on the normalised objects.
+
+Photo coverage today: 9 of 11 active artists have a portrait on disk (`ashkan-k, borey, epi, etch, highlite, imen, katrin-losa, lith-k, sarabi`). The two without (`anturage, eva-kim`) gracefully fall through to initials.
+
+## What landed in the 2026-05-12 launch-audit batch
+
+(Items from the morning audit, before the polish batch above.)
+
+- **Roster reshape.** Dropped Goomgum + ENAI (hard delete, FKs respected); added LITH K, Sarabi, Borey; promoted Katrin Losa to verified. Nuked the duplicate `moh` / `moh-2` accounts cleanly (artists + profiles + auth.users in the right order).
+- **Per-artist Linktree at `/a/<handle>`.** New `a.html` page renders a polished link-in-bio surface for any artist using their `handle`. Apache rewrite at `/a/<handle>` forwards to `a.html?h=<handle>` for humans and to the `profile-share` edge function (with full unfurl meta) for crawlers (UA match: WhatsApp/facebookexternalhit/Twitterbot/Slackbot/TelegramBot/Discordbot/LinkedInBot/Embedly/Pinterest/vkShare/redditbot/Skype).
+- **`/link.html` link-in-bio.** Brand-side Linktree at `rosterplus.io/link` with 4 primary CTAs (book, join roster, browse directory, iOS) + social row + featured-artist card.
+- **Homepage 2026-05-12 audit revisions.** Stats strip, social-proof venue strip, pricing card restructure (founding-50 anchored at "first 50 free, then 5% commission"), CTA hierarchy fixed, JSON-LD `MusicGroup` + `FAQPage` added, 6-question Gulf-specific FAQ section.
+- **Per-artist share previews.** WhatsApp / Facebook / Twitter / Slack now unfurl with the artist's name, photo, genre, base fee — served by the existing `profile-share` edge function, gated by the htaccess UA match above. Fixed an Apache backref bug where `%2` was used to extract the UUID (only the LAST `RewriteCond` exposes groups) by passing `%{QUERY_STRING}` through verbatim.
+- **App icon set regenerated.** New minimal "R+" + ROSTR+ wordmark with the green corner accent; all 9 PNG sizes + maskable + SVG written by `ios/scripts/generate-app-icon.swift`.
 
 ## What landed in the 2026-04-29 batch
 
@@ -146,12 +177,19 @@ Driven by the full pre-launch audit at `~/.claude/plans/full-audit-we-going-zipp
 
 ## Outstanding follow-ups (not P0)
 
-From the 2026-04-25 + 2026-04-27 + 2026-04-28 audits:
+From the 2026-04-25 + 2026-04-27 + 2026-04-28 audits, re-counted 2026-05-12:
 
+**Operator-only (cannot be done from a coding session):**
 - **Supabase leaked-password protection (HaveIBeenPwned) is disabled.** Dashboard toggle at Auth → Settings → Password Strength. Required for launch given the platform handles money.
-- **Supabase advisor — 25 SECURITY DEFINER functions are anon-executable** (down from 35 on 2026-04-29). Migration `revoke_execute_on_trigger_class_functions` revoked EXECUTE on 10 trigger-class functions: `audit_artist_change`, `audit_artist_insert`, `handle_new_user`, `log_booking_status_change`, `notify_booking_event`, `notify_contract_event`, `notify_message_event`, `notify_payment_event`, `notify_push_on_notification`, `rls_auto_enable`. Triggers continue to fire (Postgres bypasses EXECUTE checks for trigger invocations). The remaining 25 are all client-callable by design (rate limiters, admin RPCs that internally check `is_admin()`, public helpers like `check_availability` / `create_review` / `cron_health_*`).
-- **Web inline-style cleanup** — `web/admin.html` has 222 `style=` attributes (worst offender). Dashboard, artist-dashboard, settings, messages, profile, payments all 28+. Extract to `system.css` utility classes.
-- **Web aria-label sweep** — `contracts.html` 4/15 buttons labeled, `dashboard.html` 2/5. Action surfaces firing money/legal events should all be labeled.
+- **TestFlight build 5.** Blocked on Apple Distribution cert + provisioning profile. Build 4 is live; iOS code is at `c787d5f`.
+- **App Store submission.** Metadata draft at `workspace/docs/APP_STORE_METADATA.md`; needs screenshots + demo account + reviewer notes.
+- **Drop in two missing roster photos.** `assets/images/artists/anturage.jpg` and `assets/images/artists/eva-kim.jpg` (the other 9 are in). Falls through to initials until provided.
+- **Confirm `/link.html` social handles** are real (IG/LinkedIn/X). Currently using ROSTR+ corporate handles; the link UI is one find-and-replace away.
+
+**Code-side, low priority:**
+- **Supabase advisor — 25 SECURITY DEFINER functions are anon-executable** (down from 35 on 2026-04-29). The remaining 25 are all client-callable by design (rate limiters, admin RPCs that internally check `is_admin()`, public helpers like `check_availability` / `create_review` / `cron_health_*`).
+- **Web inline-style cleanup** — re-counted 2026-05-12: `admin.html` 148, `dashboard.html` 20, `artist-dashboard.html` ~30, `settings.html` / `messages.html` / `profile.html` / `payments.html` similar. Was 222/28 in the audit — prior batches chipped at it without updating STATUS. Extract to `system.css` utility classes when touching these files.
+- **Web aria-label sweep** — re-verified 2026-05-12: the contracts.html "4/15 unlabeled" and dashboard.html "2/5 unlabeled" findings are **false positives**. Every flagged button has a visible text label ("Close", "Cancel", "Generate Contract", "All", "Signed", etc.) which screen readers read by default. `aria-label` would actually fight the visible text. Treat as resolved.
 - **Localization sweep** — foundation is in place (24 keys + EN/AR + type-safe accessors). 123 literal `Text("...")` strings remain across iOS views. Incremental sweep, no big-bang.
 - **Supabase advisor**: `admin_rate_counter` has RLS enabled but no policies. Documented as intentional via `COMMENT ON TABLE`; advisor still flags as INFO.
 
