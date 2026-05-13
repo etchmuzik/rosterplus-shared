@@ -2,10 +2,13 @@
 
 Single-page snapshot of all three repos and the live deploy. Updated by hand at meaningful moments (post-audit, post-incident, post-feature-batch).
 
-**Last updated: 2026-05-12 PM (post-polish-batch — roster faces on homepage, /a/<handle>, /link, /press, operator-set featured, click tracking, handle slugs).**
+**Last updated: 2026-05-13 (post-full-audit — 4-axis sweep + P0/P1 auto-fix landed; admin console redesign + media columns also shipped).**
 
+> See [`workspace/docs/AUDIT-2026-05-13-WEB.md`](../workspace/docs/AUDIT-2026-05-13-WEB.md)
+> for the full 4-axis audit (security, code quality, accessibility,
+> performance) and the P0/P1 fixes that landed in web commit `292d66d`.
 > See [`workspace/docs/AUDIT-2026-05-12-LAUNCH.md`](../workspace/docs/AUDIT-2026-05-12-LAUNCH.md)
-> for the full pre-launch verification (web smoke, backend health,
+> for the prior pre-launch verification (web smoke, backend health,
 > security headers, SEO, cron, advisors, error patterns).
 
 ---
@@ -14,7 +17,7 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 
 | Surface | State | Detail |
 |---|---|---|
-| Web — rosterplus.io | 🟢 **Launch-ready** | All 28 pages return 200 (added `/press.html` + `/link.html`). Live SHA `1d9d3e2` matches origin matches local. SW cache + `window.ROSTR_VERSION` stamped each push. HSTS/CSP/HTTP3 healthy. 0 client_errors in last 24h. Privacy policy revised for App Store sub-processor disclosure. **Homepage now uses real roster faces** (avatar_url → `/assets/images/artists/<handle>.jpg` → initials). Per-artist Linktree live at `/a/<handle>`. Operator-set "Artist of the week" via `featured_until`. Plausible click tracking on `/link` + `/a/*` CTAs. **`admin.html` inline-style debt cut from 148 → 38** (77 new utility classes in `system.css`). |
+| Web — rosterplus.io | 🟢 **Launch-ready** | All 28 pages return 200 (added `/press.html` + `/link.html`). Live SHA `292d66d` matches origin matches local. SW cache + `window.ROSTR_VERSION` stamped each push. HSTS/CSP/HTTP3 healthy. 0 real client_errors in last 24h (98.5% of prior noise was a browser-extension `sseError` storm — now filtered at the source). 2026-05-13 full audit cleared with P0/P1 auto-fix: `is_admin()` defense-in-depth, `n.href` validation, `--text-tertiary` contrast bump (5.7:1 AA-passing), toast aria-live, `aria-expanded` sync, 17 form labels associated, `icon-maskable-512.png` 969 KB → 6.4 KB, font preconnects on 19 high-traffic pages, video preload demote. |
 | iOS — App Store | 🟡 TestFlight beta | Every primary surface Supabase-backed. Build green, **108 tests** passing. Build 4 on TestFlight 2026-05-11 with the `UIBackgroundModes` fix — silent push now works. AASA live at `/.well-known/apple-app-site-association`; universal links into the app dispatch for 9 path patterns. `ITSAppUsesNonExemptEncryption=false` baked into Info.plist so ASC never prompts. App Store metadata draft at `workspace/docs/APP_STORE_METADATA.md`. Money is `Decimal` end-to-end. **AR localisation at 66 keys (was 24/36 in prior audits)** — over halfway to the literal-`Text()` count, sweep continues incrementally. |
 | Supabase — `vgjmfpryobsuboukbemr` | 🟢 ACTIVE_HEALTHY | eu-west-1, Postgres 17, 17 tables (RLS enabled), 13 edge functions. 11 active verified artists on roster. **Zero errors in 365+ cron invocations over last 7 days.** |
 | Shared contract — this repo | 🟢 In sync | Schema regenerated 2026-04-28. No new RPCs / edge functions in polish batch — `handle` + `featured_until` are direct PostgREST writes against `artists`. |
@@ -26,7 +29,7 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 | Repo | HEAD | What's there |
 |---|---|---|
 | [`rosterplusapp-ios`](https://github.com/etchmuzik/rosterplusapp-ios) | `291b2bb` | iOS app. SwiftUI, Swift 6.1, iOS 18 deployment target. 108 tests passing. Build 4 on TestFlight. Localizable.xcstrings now at 66 EN+AR keys. |
-| [`rosterplusapp`](https://github.com/etchmuzik/rosterplusapp) | `1d9d3e2` | Web app. Static HTML/CSS/vanilla JS. **28 pages**, no build step. **Launch-ready, polish batch + admin sweep shipped 2026-05-12.** |
+| [`rosterplusapp`](https://github.com/etchmuzik/rosterplusapp) | `292d66d` | Web app. Static HTML/CSS/vanilla JS. **28 pages**, no build step. **Launch-ready. 2026-05-13 full 4-axis audit + P0/P1 auto-fix shipped.** |
 | [`rosterplus-shared`](https://github.com/etchmuzik/rosterplus-shared) | `fb8910a` | Cross-platform contract — Supabase types + RPC catalog + schema notes |
 
 ---
@@ -34,7 +37,7 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 ## Live deploy state (rosterplus.io)
 
 - **HTTP**: 200 on every public page (verified 2026-05-12 across all 28 HTML routes — `/press.html` and `/link.html` added in polish batch)
-- **Live build SHA**: `1d9d3e2` (matches `origin/main` and local `HEAD`).
+- **Live build SHA**: `292d66d` (matches `origin/main` and local `HEAD`).
 - **Last deploy**: `1d9d3e2 refactor(admin): extract repeated inline styles to utility classes` (2026-05-12 evening). admin.html debt cut from 148 → 38 inline `style=` attrs; 77 new utility classes in `system.css`. No visual change.
 - **Security headers**: CSP locked to 3 known origins, HSTS preloaded 1y, X-Frame-Options DENY, Permissions-Policy denies camera/microphone/geolocation. HTTP/3 (alt-svc).
 - **Backend (Supabase) health**: ACTIVE_HEALTHY. 365+ cron invocations in 7 days, **zero errors**. 0 client_errors in last 24h. Edge function `/health` returns 200. Anon REST `artists?select=count` returns 200.
@@ -105,6 +108,85 @@ Full caller list: [`RPC_CONTRACT.md`](./RPC_CONTRACT.md).
 - `prune-cron-runs` — weekly Sunday 04:00 UTC (drops > 90 days)
 
 ---
+
+## What landed in the 2026-05-13 full-audit batch
+
+Four parallel specialist agents (security, code quality, a11y,
+performance) + Supabase advisor + manual checks. Full report at
+`workspace/docs/AUDIT-2026-05-13-WEB.md`. **15 P0 findings, 24 P1,
+20 P2**. Auto-fix of every P0/P1 that didn't need an operator
+toggle. Shipped in web commit `292d66d`.
+
+**Security (defense-in-depth):**
+- `DB._assertAdmin()` synchronous helper added; 4 admin write-path
+  client functions (`adminUpdateArtistStatus`, `adminSetFeatured`,
+  `adminSetArtistVerified`, `adminCreateUnclaimedArtist`) now pre-
+  check `Auth.isAdminCached` before hitting Supabase. RLS remains
+  the hard gate.
+- `_isSafeInternalHref()` validator runs before
+  `openNotification → location.href = n.href`. Rejects schemes,
+  protocol-relative `//`, `..` traversal, external origins.
+- `resend-webhook` fails closed when `RESEND_WEBHOOK_SECRET` env
+  var is absent (was: log + continue). Code committed but **not
+  deployed via MCP** — operator must verify the secret is set
+  before re-deploying that function or live email tracking
+  breaks.
+- `X-XSS-Protection` header removed from both `netlify.toml` and
+  `.htaccess` (obsolete; CSP is the real defense).
+
+**Code quality:**
+- 6 HTML files (`auth`, `contract`, `claim-profile`, `invoice`,
+  `offline`, `404`) restored from past lftp-deploy stamp drift.
+- `app.js` `ROSTR_VERSION` reset to `'dev'` in source.
+- 5 protected pages (`booking`, `bookings`, `contracts`,
+  `payments`, `messages`) switched from bare
+  `window.location.href='auth.html'` to `Auth.require()` —
+  preserves return URL on re-login.
+- `renderDemoBanner` deleted (defined, never called).
+- `offline.html` now loads `error-logger.js` (was the only page
+  without it).
+
+**Accessibility (WCAG 2.1 AA):**
+- `UI.toast()` writes to a singleton `#rostr-sr-status` live
+  region. `role="status"` / `role="alert"` + `aria-live`
+  polite/assertive based on toast type. SR users now hear toasts.
+- `aria-expanded` syncs with state on nav-toggle, notif-bell,
+  user-menu avatar (was hardcoded `false`). Notif bell + avatar
+  also got `aria-haspopup` + `aria-controls`.
+- `--text-tertiary` bumped from `rgba(255,255,255,0.34)` (~2.8:1,
+  fails AA) to `0.62` (~5.7:1, passes AA). `--text-secondary`
+  also bumped 0.58 → 0.70.
+- 17 form labels associated with `for=…` across `auth.html` (6),
+  `settings.html` (7), `contracts.html` (4), `claim-profile.html` (1).
+- `aria-label` added on 8 directory + admin filter / search inputs
+  that had placeholder-only labelling.
+
+**Performance:**
+- `icons/icon-maskable-512.png` 969 KB → 6.4 KB on prod (151×).
+  Was an uncompressed RGBA save of a 2-color brand mark; Pillow
+  reduced it to an 8-bit indexed PNG.
+- Font preconnects (`api.fontshare.com`, `cdn.fontshare.com`,
+  `fonts.googleapis.com`, `fonts.gstatic.com`) added to 19 high-
+  traffic HTML pages. `@import` statements kept in `system.css`
+  as fallback.
+- `index.html` reach-globe video `preload="auto"` → `"metadata"`.
+  Saves ~1.1 MB off the homepage critical path on cold load.
+
+**Telemetry hygiene:**
+- `assets/js/error-logger.js` gets a noise filter
+  (`NOISE_PATTERNS` + cross-origin filename heuristic). Drops
+  `func sseError not found` (199 entries/week from a TON/Tron
+  wallet's `inpage.js`), `chrome-extension://`, `moz-extension://`,
+  `ResizeObserver loop`, `Script error.` Real telemetry no
+  longer drowned by extension noise.
+
+**P2 items still open** (not blocking, tracked in audit doc):
+- CSP `'unsafe-inline'` removal (substantial; needs nonce pipeline)
+- Modal focus trap helper
+- `auth.html` role-picker keyboard accessibility (div onclick → button radio)
+- Heading hierarchy fixes (h1→h3 skips on directory/profile)
+- 13 unused indexes flagged by Supabase advisor
+- 91 inline styles on `artist-dashboard.html`
 
 ## What landed in the 2026-05-12 polish batch
 
