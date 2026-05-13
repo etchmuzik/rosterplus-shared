@@ -2,11 +2,13 @@
 
 Single-page snapshot of all three repos and the live deploy. Updated by hand at meaningful moments (post-audit, post-incident, post-feature-batch).
 
-**Last updated: 2026-05-13 (post-full-audit — 4-axis sweep + P0/P1 auto-fix landed; admin console redesign + media columns also shipped).**
+**Last updated: 2026-05-13 PM (post-audit-v2 — second 4-axis sweep + auto-fix; cumulative audit work concluded).**
 
+> See [`workspace/docs/AUDIT-2026-05-13-WEB-v2.md`](../workspace/docs/AUDIT-2026-05-13-WEB-v2.md)
+> for the second-pass audit with new specialist agents. Found 4 new
+> P0s + 11 new P1s; auto-fix landed in web commit `86fb07b`.
 > See [`workspace/docs/AUDIT-2026-05-13-WEB.md`](../workspace/docs/AUDIT-2026-05-13-WEB.md)
-> for the full 4-axis audit (security, code quality, accessibility,
-> performance) and the P0/P1 fixes that landed in web commit `292d66d`.
+> for the first-pass audit and the P0/P1 fixes that landed in web commit `292d66d`.
 > See [`workspace/docs/AUDIT-2026-05-12-LAUNCH.md`](../workspace/docs/AUDIT-2026-05-12-LAUNCH.md)
 > for the prior pre-launch verification (web smoke, backend health,
 > security headers, SEO, cron, advisors, error patterns).
@@ -17,7 +19,7 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 
 | Surface | State | Detail |
 |---|---|---|
-| Web — rosterplus.io | 🟢 **Launch-ready** | All 28 pages return 200 (added `/press.html` + `/link.html`). Live SHA `292d66d` matches origin matches local. SW cache + `window.ROSTR_VERSION` stamped each push. HSTS/CSP/HTTP3 healthy. 0 real client_errors in last 24h (98.5% of prior noise was a browser-extension `sseError` storm — now filtered at the source). 2026-05-13 full audit cleared with P0/P1 auto-fix: `is_admin()` defense-in-depth, `n.href` validation, `--text-tertiary` contrast bump (5.7:1 AA-passing), toast aria-live, `aria-expanded` sync, 17 form labels associated, `icon-maskable-512.png` 969 KB → 6.4 KB, font preconnects on 19 high-traffic pages, video preload demote. |
+| Web — rosterplus.io | 🟢 **Launch-ready** | All 28 pages return 200. Live SHA `86fb07b`. Two full 4-axis audits completed 2026-05-13 with auto-fix of P0/P1. New wins on the second pass: send-email + send-push edge functions now require JWT auth (were open relays), profile.html openLightbox XSS fixed (DOM-construction not innerHTML), search-results innerHTML escaped end-to-end, notification onclick safe-ids, font `<link rel="stylesheet">` tags actually shipped this time (yesterday's preconnects were only half the fix), icon-512.png 160 KB → 5.9 KB on prod, og-default.jpg new 13.7 KB JPEG (was 178 KB PNG). |
 | iOS — App Store | 🟡 TestFlight beta | Every primary surface Supabase-backed. Build green, **108 tests** passing. Build 4 on TestFlight 2026-05-11 with the `UIBackgroundModes` fix — silent push now works. AASA live at `/.well-known/apple-app-site-association`; universal links into the app dispatch for 9 path patterns. `ITSAppUsesNonExemptEncryption=false` baked into Info.plist so ASC never prompts. App Store metadata draft at `workspace/docs/APP_STORE_METADATA.md`. Money is `Decimal` end-to-end. **AR localisation at 66 keys (was 24/36 in prior audits)** — over halfway to the literal-`Text()` count, sweep continues incrementally. |
 | Supabase — `vgjmfpryobsuboukbemr` | 🟢 ACTIVE_HEALTHY | eu-west-1, Postgres 17, 17 tables (RLS enabled), 13 edge functions. 11 active verified artists on roster. **Zero errors in 365+ cron invocations over last 7 days.** |
 | Shared contract — this repo | 🟢 In sync | Schema regenerated 2026-04-28. No new RPCs / edge functions in polish batch — `handle` + `featured_until` are direct PostgREST writes against `artists`. |
@@ -29,7 +31,7 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 | Repo | HEAD | What's there |
 |---|---|---|
 | [`rosterplusapp-ios`](https://github.com/etchmuzik/rosterplusapp-ios) | `291b2bb` | iOS app. SwiftUI, Swift 6.1, iOS 18 deployment target. 108 tests passing. Build 4 on TestFlight. Localizable.xcstrings now at 66 EN+AR keys. |
-| [`rosterplusapp`](https://github.com/etchmuzik/rosterplusapp) | `292d66d` | Web app. Static HTML/CSS/vanilla JS. **28 pages**, no build step. **Launch-ready. 2026-05-13 full 4-axis audit + P0/P1 auto-fix shipped.** |
+| [`rosterplusapp`](https://github.com/etchmuzik/rosterplusapp) | `86fb07b` | Web app. Static HTML/CSS/vanilla JS. **28 pages**, no build step. **Launch-ready. Two full 4-axis audits + P0/P1 auto-fix shipped 2026-05-13.** |
 | [`rosterplus-shared`](https://github.com/etchmuzik/rosterplus-shared) | `fb8910a` | Cross-platform contract — Supabase types + RPC catalog + schema notes |
 
 ---
