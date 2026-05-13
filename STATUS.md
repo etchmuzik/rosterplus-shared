@@ -19,7 +19,7 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 
 | Surface | State | Detail |
 |---|---|---|
-| Web — rosterplus.io | 🟢 **Launch-ready** | All 28 pages return 200. Live SHA `86fb07b`. Two full 4-axis audits completed 2026-05-13 with auto-fix of P0/P1. New wins on the second pass: send-email + send-push edge functions now require JWT auth (were open relays), profile.html openLightbox XSS fixed (DOM-construction not innerHTML), search-results innerHTML escaped end-to-end, notification onclick safe-ids, font `<link rel="stylesheet">` tags actually shipped this time (yesterday's preconnects were only half the fix), icon-512.png 160 KB → 5.9 KB on prod, og-default.jpg new 13.7 KB JPEG (was 178 KB PNG). |
+| Web — rosterplus.io | 🟢 **Launch-ready** | All 28 pages return 200. Live SHA `ce0afd4`. Two full 4-axis audits + a deferred-batch sweep completed 2026-05-13. Edge functions deployed: send-email v11 (JWT auth + EPK same-origin escape hatch), send-push v2 (JWT/admin auth), resend-webhook v2 (fail-closed). a11y now: 6 modals have Esc + focus trap (`UI.bindModal`), 8 pages got `<main>` landmark, 12+ headings promoted h3→h2 across 5 files, `.btn-icon` 36→44px touch target. QR codes have visible "QR unavailable" fallback. contracts.html race fix shipped. |
 | iOS — App Store | 🟡 TestFlight beta | Every primary surface Supabase-backed. Build green, **108 tests** passing. Build 4 on TestFlight 2026-05-11 with the `UIBackgroundModes` fix — silent push now works. AASA live at `/.well-known/apple-app-site-association`; universal links into the app dispatch for 9 path patterns. `ITSAppUsesNonExemptEncryption=false` baked into Info.plist so ASC never prompts. App Store metadata draft at `workspace/docs/APP_STORE_METADATA.md`. Money is `Decimal` end-to-end. **AR localisation at 66 keys (was 24/36 in prior audits)** — over halfway to the literal-`Text()` count, sweep continues incrementally. |
 | Supabase — `vgjmfpryobsuboukbemr` | 🟢 ACTIVE_HEALTHY | eu-west-1, Postgres 17, 17 tables (RLS enabled), 13 edge functions. 11 active verified artists on roster. **Zero errors in 365+ cron invocations over last 7 days.** |
 | Shared contract — this repo | 🟢 In sync | Schema regenerated 2026-04-28. No new RPCs / edge functions in polish batch — `handle` + `featured_until` are direct PostgREST writes against `artists`. |
@@ -31,7 +31,7 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 | Repo | HEAD | What's there |
 |---|---|---|
 | [`rosterplusapp-ios`](https://github.com/etchmuzik/rosterplusapp-ios) | `291b2bb` | iOS app. SwiftUI, Swift 6.1, iOS 18 deployment target. 108 tests passing. Build 4 on TestFlight. Localizable.xcstrings now at 66 EN+AR keys. |
-| [`rosterplusapp`](https://github.com/etchmuzik/rosterplusapp) | `86fb07b` | Web app. Static HTML/CSS/vanilla JS. **28 pages**, no build step. **Launch-ready. Two full 4-axis audits + P0/P1 auto-fix shipped 2026-05-13.** |
+| [`rosterplusapp`](https://github.com/etchmuzik/rosterplusapp) | `ce0afd4` | Web app. Static HTML/CSS/vanilla JS. **28 pages**, no build step. **Launch-ready. Two full audits + deferred-batch sweep shipped 2026-05-13.** |
 | [`rosterplus-shared`](https://github.com/etchmuzik/rosterplus-shared) | `fb8910a` | Cross-platform contract — Supabase types + RPC catalog + schema notes |
 
 ---
@@ -110,6 +110,56 @@ Full caller list: [`RPC_CONTRACT.md`](./RPC_CONTRACT.md).
 - `prune-cron-runs` — weekly Sunday 04:00 UTC (drops > 90 days)
 
 ---
+
+## What landed in the 2026-05-13 deferred-batch sweep (commit `ce0afd4`)
+
+After the two full audits, picked off the items I had originally
+deferred as "next-sprint":
+
+- **Edge functions deployed via Supabase MCP**: send-email v11
+  (JWT + EPK escape-hatch), send-push v2 (JWT + admin allowlist),
+  resend-webhook v2 (fail-closed if `RESEND_WEBHOOK_SECRET` unset).
+- **6 modals got `UI.bindModal()`** — Esc-to-close + Tab focus trap +
+  auto-focus on open. Helper lives in `app.js`. Wired on contracts
+  view + new, payments detail + make-payment, dashboard message,
+  artist-dashboard action.
+- **`<main>` landmarks** on 8 pages that only had `<a id="main-content">`
+  skip-link anchors (index, messages, settings, admin, bookings,
+  status, auth, epk).
+- **Heading-skip fixes** on 5 more pages (settings divs → h2,
+  messages.html h3 → h1, dashboard + artist-dashboard + contracts
+  h3 → h2). Plus added `<h1 class="sr-only">` to link/a/epk.
+- **44×44 touch targets** — `.btn-icon` 36→44px (`btn-sm` min-height
+  bumped to 36 for mobile WCAG 2.5.5 AAA compliance).
+- **QR fallback** — `qrserver.com` images now degrade to a visible
+  "QR unavailable" placeholder if the CDN is down (was: 30%
+  opacity, looked broken).
+- **contracts.html defined-after-use race fix** — early-stub
+  `<script>` queues `openNewContractModal` / `filterContracts`
+  calls before the main inline script parses (3 client_errors/week
+  source).
+- **messages.html inline styles** 33→31 with two new utility classes.
+
+### ⚠ Operator action needed
+
+`resend-webhook` now returns 500 when `RESEND_WEBHOOK_SECRET` is
+unset. Set the secret in Supabase Dashboard → Edge Functions →
+Secrets to restore email-event tracking. (No active impact today:
+the table had 0 rows in 30 days before this anyway, meaning Resend
+wasn't sending events. After Resend retries enough 500s it may
+disable the endpoint — re-enable it from the Resend dashboard once
+the secret is set.)
+
+### Items still NOT fixed (deferred for real sprints)
+
+- **CSP `'unsafe-inline'` removal** — needs nonce pipeline for
+  every inline `<script>` across 28 HTML pages. ~2h dedicated work.
+- **`app.js` minification** — 194KB → ~50KB win, but needs esbuild
+  step in `scripts/deploy-stamp.sh`. Not a chat-session fix.
+- **Dead-CSS sweep** — flagged 70 candidates but verification
+  showed at least 6 are JS-template-interpolated (`.lightbox`,
+  `.available`, `.booked`, `.today`, `.busy`, `.avail`). Real
+  sweep needs a runtime checker, not a static grep.
 
 ## What landed in the 2026-05-13 full-audit batch
 
