@@ -28,14 +28,17 @@ These columns are `text` in the schema but only take a fixed set of
 values. The DB doesn't enforce — the app code does.
 
 ### `bookings.status`
-- `pending` — request sent, artist hasn't responded
-- `confirmed` / `contracted` — accepted, contract drafted/signed
-- `cancelled` — explicit cancel
-- `rejected` — artist declined
+DB CHECK constraint `bookings_status_check` enforces:
+- `inquiry` — first contact, promoter exploring availability
+- `pending` — formal request sent, artist hasn't responded
+- `confirmed` — accepted, no contract yet
+- `contracted` — contract drafted/signed
 - `completed` — event date passed (set by cron)
+- `cancelled` — explicit cancel (covers former "rejected" copy)
 
 Availability checks (`check_availability` RPC and inline JS fallback)
 treat `confirmed`, `contracted`, `pending` as occupying the date.
+`inquiry` does NOT occupy the date.
 
 ### `contracts.status`
 - `draft`
@@ -46,15 +49,22 @@ treat `confirmed`, `contracted`, `pending` as occupying the date.
 - `cancelled`
 
 ### `payments.status`
+DB CHECK constraint `payments_status_check` enforces:
 - `pending`
-- `paid` — `paid_at` set
+- `processing` — promoter recorded payout, waiting for artist confirm
+- `completed` — both sides confirmed, `paid_at` set
 - `failed`
 - `refunded`
 
+Note: iOS `PaymentRow.Status` maps `completed → .paid` for display copy
+(`PaymentsStore.swift:121`). The wire value is `completed`.
+
 ### `payments.type`
+DB CHECK constraint `payments_type_check` enforces:
 - `deposit`
-- `balance`
-- `full`
+- `milestone`
+- `final`
+- `refund`
 
 ### `invitations.status`
 - `pending`
