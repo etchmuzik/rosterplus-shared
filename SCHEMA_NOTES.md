@@ -95,6 +95,44 @@ The signup edge function rejects any role outside `promoter` /
 
 ---
 
+## `artists.genre` vs `artists.subgenres` — column merge (2026-05-17)
+
+Both columns are `text[]`. **The web client merged them into a single
+picker on 2026-05-17** — every artist pick now lands in
+`artists.genre`, and `artists.subgenres` is set to `[]` on every
+save. The column was not dropped; reading code should still tolerate
+non-empty `subgenres` until the next backfill cycle eliminates it.
+
+### Read pattern (web)
+The DB layer (`web/assets/js/app.js`) ships a helper
+`_mergedGenreList(row)` that returns the deduped union of
+`row.genre` + `row.subgenres` as `string[]`. `getArtists`,
+`getArtistById`, and `getMyArtistProfile` all expose this as
+`genres: string[]` alongside the legacy single-string `genre`. New
+display code should consume `data.genres` and join with `' · '`;
+single-label slots (compact cards, OG meta) may use `genres[0]`.
+
+### Canonical genre catalogue
+The 12 valid primary genres are listed in `window.GENRES` at the top
+of `assets/js/app.js`. Each carries a `subs: string[]` of valid
+subgenres. The artist picker (`artist-profile-edit.html`) and the
+directory filter (`directory.html`) both read from this catalogue —
+**do not hardcode genre lists in other surfaces**.
+
+### iOS parity
+iOS reads `artist.genre` directly (text[]). The merge is transparent
+to iOS because every artist's full set lives in that one column
+post-merge. iOS does not read or write `subgenres`.
+
+### History
+- Pre-2026-05-17: artists picked ONE primary from a dropdown +
+  free-text subgenres. Two columns, inconsistent picker lists, and
+  a primary/sub distinction with no real semantic meaning.
+- 2026-05-17: web unified pickers and column writes. Backfill on
+  2026-05-17 normalized one stale row (`Progressive` → `Progressive House`).
+
+---
+
 ## Realtime channels
 
 Tables with realtime enabled (clients can subscribe to live changes):
