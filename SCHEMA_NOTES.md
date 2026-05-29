@@ -93,6 +93,31 @@ href client-side. Common values: `booking_request`, `booking_accepted`,
 The signup edge function rejects any role outside `promoter` /
 `artist` — admin role is admin-promoted only.
 
+### `profiles.notification_prefs` (added 2026-05-18)
+
+JSONB column. 5 keys, all default `true` (opt-out model). Migration:
+`20260518_profiles_notification_prefs.sql`.
+
+| Key | What it gates |
+|---|---|
+| `email` | Master email switch. When `false`, ALL emails skip the recipient EXCEPT `invitation` (recipient has no account yet) and `book@rosterplus.io` (anonymous EPK-inquiry inbox). |
+| `bookings` | `booking_*` push + email types (request, accepted, rejected, confirmation, reminders). |
+| `messages` | `message_*` push (new inbound message in a thread). Email types don't exist for messages yet. |
+| `contracts` | `contract_*` push + email types (signed, awaiting countersig). |
+| `payouts` | `payout_*` / `payment_*` push + email types. |
+
+**Dispatch sites that respect this column** (all gated 2026-05-18):
+- `send-push` v4 — `prefKeyForType()` maps `data.type` prefix → key, skips before token lookup
+- `send-email` v13 — two-layer gate: master `email` AND `emailKindPrefKey(type)` (the per-kind key for `booking_*`/`contract_*`/`payment_*`)
+- `send-booking-reminders` v5 — JOIN-fetched per-recipient prefs, `shouldEmailReminder()` requires BOTH `email` AND `bookings`
+- `send-review-prompts` — inherits via send-email (only master `email` gate; review prompts have no per-kind key)
+
+Missing keys read as `true` (legacy rows pre-migration). Lookup failures fall through to "send" (opt-out safety: couldn't read prefs should not silently drop email).
+
+Written by `/settings.html` only. iOS doesn't write this yet — iOS settings still presents notifications as static UI. See STATUS.md "iOS notification-toggle parity".
+
+Index: `profiles_email_unique_idx` on `lower(email) WHERE email IS NOT NULL` (added in the same migration; powers `send-email`'s by-recipient prefs lookup).
+
 ---
 
 ## `artists.genre` vs `artists.subgenres` — column merge (2026-05-17)

@@ -1,7 +1,7 @@
 # RPC Contract
 
 This document is the authoritative list of which client calls which RPC
-or edge function. Last reviewed: **2026-04-29**.
+or edge function. Last reviewed: **2026-05-26**.
 
 Update this file when adding or removing a server-side function. Drift
 between iOS and web at the data layer was the root cause of the
@@ -116,6 +116,12 @@ should not invoke them directly.
   EPK inquiry.
 - **Notes**: dispatches to Resend. Body shape is
   `{ to, type, data }` — `type` switches the template.
+- **As of v13 (2026-05-18)**: gates each send on the recipient's
+  `profiles.notification_prefs`. Two-layer check — master `email`
+  toggle then per-kind (`bookings` / `contracts` / `payouts`) for
+  `booking_*` / `contract_*` / `payment_*` types. `invitation` and
+  emails to `book@rosterplus.io` (anonymous EPK inquiries) bypass
+  the check. See `SCHEMA_NOTES.md` for the full pref taxonomy.
 
 ### `admin-user-action`
 - **iOS**: not used.
@@ -124,13 +130,58 @@ should not invoke them directly.
 ### Cron-only / no client caller
 `admin-daily-digest`, `send-booking-reminders`,
 `send-artist-onboarding-drip`, `profile-share`, `send-push`,
-`stripe-webhook`, `resend-webhook`, `health`.
+`stripe-webhook`, `resend-webhook`, `health`, `error-spike-alert`.
 
 These are invoked by pg_cron schedules or external webhooks. Client
 code does not call them directly.
 
 `send-review-prompts` exists but its cron schedule is paused as of
 2026-04-29 (reviews feature dormant, see entry above).
+
+### `error-spike-alert` (added 2026-05)
+- **iOS**: not used.
+- **Web**: not used.
+- **Invoked by**: pg_cron every 5 minutes. The job is one of the
+  highest-volume in the project (2000+ runs / 7 days, all `ok`).
+- **What it does**: scans `client_errors` for unusual spikes by
+  fingerprint, writes a row to `error_spike_alerts` when the
+  short-window count exceeds the long-window baseline. Surfaces
+  spikes without flooding the inbox on individual one-offs.
+- **Why it's not in the contract until now**: the function was
+  deployed and wired into pg_cron before `RPC_CONTRACT.md` got its
+  next refresh. Treat as a process slip — log future cron-only edge
+  functions here at deploy time.
+
+---
+
+## Cross-cutting columns
+
+Not RPC calls per se, but columns whose read/write contract matters
+across surfaces:
+
+### `profiles.notification_prefs` (added 2026-05-18)
+
+JSONB, 5 keys, all default `true`. Migration
+`20260518_profiles_notification_prefs.sql`. Companion index
+`profiles_email_unique_idx` on `lower(email) WHERE email IS NOT NULL`.
+
+- **Written by**: `web/settings.html` `saveProfile()` packs all 5
+  toggle states into the `updates` payload, which `DB.updateProfile`
+  forwards to `profiles.update(...)`.
+- **Read by** (gating dispatch):
+  - `send-push` v4 — `prefKeyForType(data.type)` → key, queries
+    `profiles.notification_prefs`, skips if `prefs[key] === false`.
+  - `send-email` v13 — see entry above.
+  - `send-booking-reminders` v5 — JOIN-fetched per-recipient prefs
+    in the bookings SELECT, `shouldEmailReminder()` requires BOTH
+    `email` AND `bookings` true.
+  - `send-review-prompts` — inherits via `send-email` (calls it with
+    `type: 'review_prompt'` which gates on master `email` only).
+- **iOS**: not yet written. iOS Settings still presents notification
+  preferences as static UI. Reconciliation tracked in STATUS.md
+  ("iOS notification-toggle parity").
+- **Full taxonomy** (which key gates what notification kind) lives
+  in `SCHEMA_NOTES.md` under `profiles.notification_prefs`.
 
 ---
 

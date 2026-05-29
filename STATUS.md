@@ -2,7 +2,11 @@
 
 Single-page snapshot of all three repos and the live deploy. Updated by hand at meaningful moments (post-audit, post-incident, post-feature-batch).
 
-**Last updated: 2026-05-13 PM (post-audit-v2 — second 4-axis sweep + auto-fix; cumulative audit work concluded).**
+**Last updated: 2026-05-26 (launch-readiness pass — five operator-only blockers remain, see `workspace/docs/GO-LIVE-READINESS-2026-05-26.md`).**
+
+> See [`workspace/docs/GO-LIVE-READINESS-2026-05-26.md`](../workspace/docs/GO-LIVE-READINESS-2026-05-26.md)
+> for the current launch-readiness report and the operator cutover
+> checklist at [`workspace/docs/NETLIFY-CUTOVER-CHECKLIST.md`](../workspace/docs/NETLIFY-CUTOVER-CHECKLIST.md).
 
 > See [`workspace/docs/AUDIT-2026-05-13-WEB-v2.md`](../workspace/docs/AUDIT-2026-05-13-WEB-v2.md)
 > for the second-pass audit with new specialist agents. Found 4 new
@@ -19,10 +23,10 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 
 | Surface | State | Detail |
 |---|---|---|
-| Web — rosterplus.io | 🟢 **Launch-ready** | All 28 pages return 200. Live SHA `ce0afd4`. Two full 4-axis audits + a deferred-batch sweep completed 2026-05-13. Edge functions deployed: send-email v11 (JWT auth + EPK same-origin escape hatch), send-push v2 (JWT/admin auth), resend-webhook v2 (fail-closed). a11y now: 6 modals have Esc + focus trap (`UI.bindModal`), 8 pages got `<main>` landmark, 12+ headings promoted h3→h2 across 5 files, `.btn-icon` 36→44px touch target. QR codes have visible "QR unavailable" fallback. contracts.html race fix shipped. |
-| iOS — App Store | 🟡 TestFlight beta | Every primary surface Supabase-backed. Build green, **108 tests** passing. Build 4 on TestFlight 2026-05-11 with the `UIBackgroundModes` fix — silent push now works. AASA live at `/.well-known/apple-app-site-association`; universal links into the app dispatch for 9 path patterns. `ITSAppUsesNonExemptEncryption=false` baked into Info.plist so ASC never prompts. App Store metadata draft at `workspace/docs/APP_STORE_METADATA.md`. Money is `Decimal` end-to-end. **AR localisation at 66 keys (was 24/36 in prior audits)** — over halfway to the literal-`Text()` count, sweep continues incrementally. |
-| Supabase — `vgjmfpryobsuboukbemr` | 🟢 ACTIVE_HEALTHY | eu-west-1, Postgres 17, 17 tables (RLS enabled), 13 edge functions. 11 active verified artists on roster. **Zero errors in 365+ cron invocations over last 7 days.** |
-| Shared contract — this repo | 🟢 In sync | Schema regenerated 2026-04-28. No new RPCs / edge functions in polish batch — `handle` + `featured_until` are direct PostgREST writes against `artists`. |
+| Web — rosterplus.io | 🟢 **Live (on Hostinger), Netlify-ready** | All **30 pages** return 200. Live SHA `1b00a11` (Hostinger). Netlify config (`netlify.toml`, `deploy-stamp.sh`) verified ready — pending DNS cutover at registrar. Two full 4-axis audits + deferred-batch sweep + 5 commits past last STATUS landed since then (placebo notification toggles wired, bio field added to settings, profile photo three-tier fallback, @rostr.plus IG handle, EPK install banner gating, OG image fallback, sitemap pretty URLs, contract phone placeholder removed). **0 client_errors in 24h.** |
+| iOS — App Store | 🟡 TestFlight beta | Every primary surface Supabase-backed. Build green, **116 tests** passing (was 108 — added invitations cross-user guard test + UI smoke + dashboard data-path smoke + 5 more). Local build version **5** (TestFlight currently on Build 4 — Build 5 awaiting upload). +13 commits past last STATUS: Decimal money fix (`83f2625`), RLS hygiene on artists+bookings deleted_at filters (`423f1e0`, `f23562d`), invitations sessionEpoch guard (`a9f3abf`), claim flow honest CTAs (`1914cc2`), invoice view wired to real data (`81ce2ec`), settings 6 dead rows wired (`b9210b0`), retry CTAs across artist/EPK/booking-detail (`6164962`), optimistic rollback on writer failure across stores (`ea1efcf`, `0aac315`). AASA live; universal links wired. **AR localisation 66 keys.** |
+| Supabase — `vgjmfpryobsuboukbemr` | 🟢 ACTIVE_HEALTHY | eu-west-1, Postgres 17, **18 tables (RLS enabled)** (new: `error_spike_alerts`), **14 edge functions** (new: `error-spike-alert` v3 — 5-min cron). **New 2026-05-18**: `profiles.notification_prefs jsonb` (5 keys, opt-out defaults, migration `20260518_profiles_notification_prefs.sql`, all 16 profiles backfilled); dispatch-side enforcement deployed in send-push v4, send-email v13, send-booking-reminders v5 (send-review-prompts inherits via send-email). 11 verified artists / 18 total / all 18 with `handle`. **Zero cron errors across all jobs in 30 days.** 0 client_errors in 24h. |
+| Shared contract — this repo | 🟢 In sync | RPC_CONTRACT.md refreshed 2026-05-26 — added `error-spike-alert` section. Schema regenerated 2026-04-28. |
 
 ---
 
@@ -30,20 +34,20 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 
 | Repo | HEAD | What's there |
 |---|---|---|
-| [`rosterplusapp-ios`](https://github.com/etchmuzik/rosterplusapp-ios) | `291b2bb` | iOS app. SwiftUI, Swift 6.1, iOS 18 deployment target. 108 tests passing. Build 4 on TestFlight. Localizable.xcstrings now at 66 EN+AR keys. |
-| [`rosterplusapp`](https://github.com/etchmuzik/rosterplusapp) | `ce0afd4` | Web app. Static HTML/CSS/vanilla JS. **28 pages**, no build step. **Launch-ready. Two full audits + deferred-batch sweep shipped 2026-05-13.** |
-| [`rosterplus-shared`](https://github.com/etchmuzik/rosterplus-shared) | `fb8910a` | Cross-platform contract — Supabase types + RPC catalog + schema notes |
+| [`rosterplusapp-ios`](https://github.com/etchmuzik/rosterplusapp-ios) | `7a9b708` | iOS app. SwiftUI, Swift 6.1, iOS 18 deployment target. **116 tests** passing. Build 4 on TestFlight, Build 5 ready locally. Localizable.xcstrings at 66 EN+AR keys. |
+| [`rosterplusapp`](https://github.com/etchmuzik/rosterplusapp) | `1b00a11` | Web app. Static HTML/CSS/vanilla JS. **30 pages**, no build step. **Live on Hostinger; Netlify-ready for cutover.** |
+| [`rosterplus-shared`](https://github.com/etchmuzik/rosterplus-shared) | `5623143` | Cross-platform contract — Supabase types + RPC catalog + schema notes. RPC_CONTRACT.md re-reviewed 2026-05-26. |
 
 ---
 
 ## Live deploy state (rosterplus.io)
 
-- **HTTP**: 200 on every public page (verified 2026-05-12 across all 28 HTML routes — `/press.html` and `/link.html` added in polish batch)
-- **Live build SHA**: `292d66d` (matches `origin/main` and local `HEAD`).
-- **Last deploy**: `1d9d3e2 refactor(admin): extract repeated inline styles to utility classes` (2026-05-12 evening). admin.html debt cut from 148 → 38 inline `style=` attrs; 77 new utility classes in `system.css`. No visual change.
-- **Security headers**: CSP locked to 3 known origins, HSTS preloaded 1y, X-Frame-Options DENY, Permissions-Policy denies camera/microphone/geolocation. HTTP/3 (alt-svc).
-- **Backend (Supabase) health**: ACTIVE_HEALTHY. 365+ cron invocations in 7 days, **zero errors**. 0 client_errors in last 24h. Edge function `/health` returns 200. Anon REST `artists?select=count` returns 200.
-- **Deploy pipeline**: `npm run ship` (push+deploy) plus pre-push git hook means every push from this machine is auto-deployed. Deploy gap that caused the 2026-04-30 EPK incident is closed.
+- **HTTP**: 200 on every public page (verified 2026-05-26 across all 30 HTML routes)
+- **Live build SHA**: served from Hostinger; matches commit ahead of `1b00a11`. `last-modified` 2026-05-18 on the home page (last lftp deploy from this machine).
+- **Live host**: **Hostinger** (`server: hcdn`, `platform: hostinger`). Netlify cutover prepared (`netlify.toml`, `scripts/deploy-stamp.sh`) but DNS not yet flipped.
+- **Security headers**: CSP locked, HSTS preloaded 1y, X-Frame-Options DENY, Permissions-Policy denies camera/microphone/geolocation. HTTP/3 (alt-svc). HEAD-fetch on `rosterplus.io` confirms.
+- **Backend (Supabase) health**: ACTIVE_HEALTHY. **Zero cron errors over 30 days across every job.** 0 client_errors in last 24h. Edge function `/health` returns 200.
+- **Deploy pipeline**: `npm run ship` (push+deploy) plus pre-push git hook means every push from this machine is auto-deployed via lftp to Hostinger. The pre-push hook backs up + restores HTML stamps; when a local lftp deploy fails to restore, 33-file stamp-drift in the working tree is the symptom. `git checkout -- .` fixes.
 
 ### Netlify migration (in flight)
 
@@ -325,11 +329,12 @@ From the 2026-04-25 + 2026-04-27 + 2026-04-28 audits, re-counted 2026-05-12:
 - **Confirm `/link.html` social handles** are real (IG/LinkedIn/X). Currently using ROSTR+ corporate handles; the link UI is one find-and-replace away.
 
 **Code-side, low priority:**
+- **iOS notification-toggle parity.** Web `/settings.html` now writes `profiles.notification_prefs` (email / bookings / messages / contracts / payouts) and the 4 dispatch functions honour it (2026-05-18). iOS Settings still presents notification preferences as static UI — reads from local state, doesn't write to `profiles`. Next iOS pass: bind the existing toggles to the same column so a user opting out on one client opts out everywhere. No schema work; the column exists, RLS already lets the user write their own row.
 - **Supabase advisor — 25 SECURITY DEFINER functions are anon-executable** (down from 35 on 2026-04-29). The remaining 25 are all client-callable by design (rate limiters, admin RPCs that internally check `is_admin()`, public helpers like `check_availability` / `create_review` / `cron_health_*`).
-- **Web inline-style cleanup** — `admin.html` is now **38** (was 148 → swept in `1d9d3e2`). `dashboard.html` 20, `artist-dashboard.html` ~30, `settings.html` / `messages.html` / `profile.html` / `payments.html` similar. Extract to `system.css` utility classes when touching these files — the new admin-batch added 77 reusable classes that should cover most of what these pages need too.
+- **Web inline-style cleanup** — `admin.html` is now **38** (was 148 → swept in `1d9d3e2`). `dashboard.html` **2** (was 20 — swept `291e853`, both remaining are dynamic JS interpolations). `artist-dashboard.html` **0** (was ~30 — swept `291e853`). `settings.html` 35 / `messages.html` / `profile.html` 29 / `epk.html` 21 / `payments.html` similar. Extract to `system.css` utility classes when touching these files — the new admin-batch added 77 reusable classes plus the dashboard sweep added ~75 more (`.action-req-row`, `.qb-toolbar`, `.recent-msgs-list` etc.) that should cover most of what these pages need too.
 - **Web aria-label sweep** — re-verified 2026-05-12: the contracts.html "4/15 unlabeled" and dashboard.html "2/5 unlabeled" findings are **false positives**. Every flagged button has a visible text label ("Close", "Cancel", "Generate Contract", "All", "Signed", etc.) which screen readers read by default. `aria-label` would actually fight the visible text. Treat as resolved.
 - **Localization sweep** — at **66 keys** EN/AR (was 24/36 in prior audits). 30 strings ported in `291b2bb` (CTAs, section headers, empty states, error toasts). Roughly 57 literal `Text("...")` strings remain across iOS views. Incremental sweep continues; the remaining ones include interpolated strings (`Text("Hi, \(name)")`) that need the format-string pattern, not flat keys.
-- **Supabase advisor**: `admin_rate_counter` has RLS enabled but no policies. Documented as intentional via `COMMENT ON TABLE`; advisor still flags as INFO.
+- **Supabase advisor**: `admin_rate_counter` + `error_spike_alerts` have RLS enabled but no policies. Both documented as intentional (admin-only tables, only `SECURITY DEFINER` funcs touch them); advisor still flags as INFO.
 
 ---
 
