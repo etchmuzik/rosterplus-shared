@@ -16,6 +16,23 @@ already capture argument and return shapes. This file captures the
 
 ## RPCs
 
+### `recent_booking_activity(p_limit integer DEFAULT 8)` — added 2026-05-29
+Anonymized recent-booking feed for the directory social-proof ticker.
+Returns `{ artist_name text, city text, when_bucket text }[]`.
+
+- **iOS**: not used.
+- **Web**: `assets/js/app.js` `DB.getRecentActivity` → directory.html
+  `renderActivityTicker()`. Falls back to a founding-state line when
+  <2 rows.
+- **Notes**: SECURITY DEFINER — this is the **privacy boundary**.
+  `bookings` has per-party RLS so anon can't read it directly; the
+  function reads with owner privileges but returns ONLY artist name +
+  city + a coarse time bucket (`today`/`this week`/`this month`). Never
+  the promoter, fee, venue, event name, exact date, or booking id.
+  Confirmed/contracted/completed only, last 30 days. GRANT EXECUTE to
+  anon + authenticated. Migration
+  `20260529_recent_booking_activity.sql`.
+
 ### `check_availability(p_artist_id uuid, p_event_date date)`
 Returns `{ available: bool, reason: text }[]` (always one row).
 

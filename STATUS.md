@@ -2,7 +2,60 @@
 
 Single-page snapshot of all three repos and the live deploy. Updated by hand at meaningful moments (post-audit, post-incident, post-feature-batch).
 
-**Last updated: 2026-05-26 (launch-readiness pass — five operator-only blockers remain, see `workspace/docs/GO-LIVE-READINESS-2026-05-26.md`).**
+**Last updated: 2026-05-30 (pre-launch verification pass — found + closed a PII leak, see the 🔴 block below).**
+
+> ## 🔴 2026-05-30 pre-launch verification — one real blocker found + CLOSED
+>
+> A full pre-launch pass (30 live pages, security headers, RLS boundary,
+> email/payment/webhook wiring, config landmines) found the web app
+> **technically launch-safe except for one genuine PII leak, now fixed
+> and verified against production.**
+>
+> - **🔴→✅ PII LEAK (email/phone harvestable by anon) — FIXED.** The
+>   `profiles` "readable by all" policy is `USING(true)` and anon held a
+>   table-wide SELECT grant, so a logged-out visitor could pull every
+>   user's email via the public REST API
+>   (`GET /rest/v1/profiles?select=email` returned all 16). Closed in web
+>   `d0d3a82` (migration `20260529_profiles_pii_column_lockdown.sql`):
+>   revoked anon's table-wide SELECT, re-granted SELECT on only the
+>   public-safe columns (display_name, avatar_url, city, bio, role,
+>   created_at, notification_prefs). **Verified against prod**: the
+>   `?select=email` request now returns `42501 permission denied`; the
+>   directory's public-column reads still work. The public artist queries
+>   (`getArtistById`, `getArtistByHandle`) were stripped of phone/email
+>   to match, and `a.html`'s "Book on WhatsApp" CTA now sources the
+>   number only from the artist's deliberately-published
+>   `social_links.whatsapp`, never the private account phone.
+>   `authenticated` keeps email/phone (booking-partner + own-row reads);
+>   tightening that to own-row+partners-only is a documented follow-up.
+> - **✅ Everything else green**: all 30 pages 200; HSTS-preload /
+>   frame-deny / `frame-ancestors 'none'` / nosniff / permissions-policy
+>   / HTTP/3 all present; private tables (bookings/contracts/payments/
+>   messages/invitations/audit) return 0 rows to anon; no hardcoded
+>   secrets; demo-mode not force-enabled; send-email open-relay closed +
+>   RESEND_API_KEY set; stripe-webhook gracefully unwired (503).
+> - **Correction**: `resend-webhook` now returns `401 bad_signature`,
+>   not 500 — meaning `RESEND_WEBHOOK_SECRET` **IS** set. The older
+>   "still returns 500 / set the secret" notes below are stale; that
+>   follow-up is done.
+> - **/health false-alarm fixed** (web `c4ece0e`, health v3): it judged
+>   pg_cron health by `send-booking-reminders`, which idles silently with
+>   0 bookings → permanent `ok:false`. Now probes
+>   `send-artist-onboarding-drip` (logs every hourly run) as the
+>   heartbeat; returns `ok:true`.
+> - **Latent gap (pre-existing, operator action)**: Postgres **Vault**
+>   holds only `RESEND_API_KEY` — `supabase_url` + `service_role_key`
+>   are absent, so the `notify_push_on_notification` trigger silently
+>   no-ops (push via the trigger has never fired; APNs is dry-run anyway
+>   so no user impact yet). Set both in Vault to enable trigger-based
+>   server-side dispatch.
+>
+> **Verdict: GO for soft-launch once HaveIBeenPwned is toggled (the only
+> hard-required item). The strategic blocker is the empty platform, not
+> the code — broker the first bookings (see
+> `workspace/docs/ACTIVATION-PLAYBOOK-2026-05-29.md`).**
+
+**Prior: 2026-05-26 (launch-readiness pass — five operator-only blockers remain, see `workspace/docs/GO-LIVE-READINESS-2026-05-26.md`).**
 
 > See [`workspace/docs/GO-LIVE-READINESS-2026-05-26.md`](../workspace/docs/GO-LIVE-READINESS-2026-05-26.md)
 > for the current launch-readiness report and the operator cutover
@@ -25,7 +78,7 @@ Single-page snapshot of all three repos and the live deploy. Updated by hand at 
 |---|---|---|
 | Web — rosterplus.io | 🟢 **Live (on Hostinger), Netlify-ready** | All **30 pages** return 200. Live SHA `1b00a11` (Hostinger). Netlify config (`netlify.toml`, `deploy-stamp.sh`) verified ready — pending DNS cutover at registrar. Two full 4-axis audits + deferred-batch sweep + 5 commits past last STATUS landed since then (placebo notification toggles wired, bio field added to settings, profile photo three-tier fallback, @rostr.plus IG handle, EPK install banner gating, OG image fallback, sitemap pretty URLs, contract phone placeholder removed). **0 client_errors in 24h.** |
 | iOS — App Store | 🟡 TestFlight beta | Every primary surface Supabase-backed. Build green, **116 tests** passing (was 108 — added invitations cross-user guard test + UI smoke + dashboard data-path smoke + 5 more). Local build version **5** (TestFlight currently on Build 4 — Build 5 awaiting upload). +13 commits past last STATUS: Decimal money fix (`83f2625`), RLS hygiene on artists+bookings deleted_at filters (`423f1e0`, `f23562d`), invitations sessionEpoch guard (`a9f3abf`), claim flow honest CTAs (`1914cc2`), invoice view wired to real data (`81ce2ec`), settings 6 dead rows wired (`b9210b0`), retry CTAs across artist/EPK/booking-detail (`6164962`), optimistic rollback on writer failure across stores (`ea1efcf`, `0aac315`). AASA live; universal links wired. **AR localisation 66 keys.** |
-| Supabase — `vgjmfpryobsuboukbemr` | 🟢 ACTIVE_HEALTHY | eu-west-1, Postgres 17, **18 tables (RLS enabled)** (new: `error_spike_alerts`), **14 edge functions** (new: `error-spike-alert` v3 — 5-min cron). **New 2026-05-18**: `profiles.notification_prefs jsonb` (5 keys, opt-out defaults, migration `20260518_profiles_notification_prefs.sql`, all 16 profiles backfilled); dispatch-side enforcement deployed in send-push v4, send-email v13, send-booking-reminders v5 (send-review-prompts inherits via send-email). 11 verified artists / 18 total / all 18 with `handle`. **Zero cron errors across all jobs in 30 days.** 0 client_errors in 24h. |
+| Supabase — `vgjmfpryobsuboukbemr` | 🟢 ACTIVE_HEALTHY | eu-west-1, Postgres 17, **18 tables (RLS enabled)** (new: `error_spike_alerts`), **14 edge functions** (new: `error-spike-alert` v3 — 5-min cron). **New 2026-05-18**: `profiles.notification_prefs jsonb` (5 keys, opt-out defaults, migration `20260518_profiles_notification_prefs.sql`, all 16 profiles backfilled); dispatch-side enforcement deployed in send-push v4, send-email v13, send-booking-reminders v5 (send-review-prompts inherits via send-email). **New 2026-05-29**: `recent_booking_activity()` SECURITY DEFINER RPC (anonymized directory ticker, returns artist name + city + coarse bucket only). **New 2026-05-30**: `profiles` PII column-lockdown (`20260529_profiles_pii_column_lockdown.sql` — anon SELECT on email/phone revoked, verified against prod), `health` v3 (heartbeat-based liveness). 11 verified artists / 18 total / all 18 with `handle`. **Zero cron errors across all jobs in 30 days.** 0 client_errors in 24h. |
 | Shared contract — this repo | 🟢 In sync | RPC_CONTRACT.md refreshed 2026-05-26 — added `error-spike-alert` section. Schema regenerated 2026-04-28. |
 
 ---
@@ -322,13 +375,19 @@ Driven by the full pre-launch audit at `~/.claude/plans/full-audit-we-going-zipp
 From the 2026-04-25 + 2026-04-27 + 2026-04-28 audits, re-counted 2026-05-12:
 
 **Operator-only (cannot be done from a coding session):**
-- **Supabase leaked-password protection (HaveIBeenPwned) is disabled.** Dashboard toggle at Auth → Settings → Password Strength. Required for launch given the platform handles money.
+- **🔴 Supabase leaked-password protection (HaveIBeenPwned) is disabled.** Dashboard toggle at Auth → Settings → Password Strength. **The one hard-required launch item** — the platform handles money + contracts; launching auth without leaked-password checking is a real liability.
+- **Set 2 Postgres Vault secrets** (`supabase_url` = `https://vgjmfpryobsuboukbemr.supabase.co`, `service_role_key` = the service-role JWT). Found absent in the 2026-05-30 audit — the `notify_push_on_notification` trigger reads them from Vault and silently no-ops without them, so trigger-based server-side push has never fired. (No user impact yet — APNs is dry-run — but needed for real push + the Pattern-B trigger-sent email path.) Vault is at Project Settings → Vault. Names must match exactly.
+- **Replace `GOOGLE_SITE_VERIFICATION_TOKEN` placeholder** in `index.html` line ~35. The literal placeholder string still ships to prod → Search Console was never verified. Real token from search.google.com/search-console → property rosterplus.io → Settings → Ownership verification → HTML tag.
 - **TestFlight build 5.** Blocked on Apple Distribution cert + provisioning profile. Build 4 is live; iOS code is at `c787d5f`.
 - **App Store submission.** Metadata draft at `workspace/docs/APP_STORE_METADATA.md`; needs screenshots + demo account + reviewer notes.
 - **Drop in two missing roster photos.** `assets/images/artists/anturage.jpg` and `assets/images/artists/eva-kim.jpg` (the other 9 are in). Falls through to initials until provided.
 - **Confirm `/link.html` social handles** are real (IG/LinkedIn/X). Currently using ROSTR+ corporate handles; the link UI is one find-and-replace away.
 
+**~~Resolved~~ — the older "set `RESEND_WEBHOOK_SECRET`" follow-up is DONE.** The 2026-05-30 audit found `resend-webhook` returns `401 bad_signature` (validating signatures), which means the secret IS set. Ignore any earlier note saying it returns 500.
+
 **Code-side, low priority:**
+- **Artist "Book on WhatsApp" CTA needs `social_links.whatsapp`.** Side-effect of the 2026-05-30 PII lockdown: the `/a/<handle>` Linktree "Book on WhatsApp" button used to fall back to the artist's *account phone* (`profiles.phone`), now private. It sources ONLY from the artist-published `social_links.whatsapp`. Artists who relied on the account-phone default lose the button until they set a WhatsApp number in their profile editor. Consider a one-time nudge (email or dashboard banner) to verified artists, or add a dedicated public `booking_whatsapp` field with a labeled input.
+- **Tighten `authenticated` profiles email/phone to own-row+partners-only.** The 2026-05-30 lockdown closed the *anon* leak (the real risk — bulk harvest by a logged-out scraper). `authenticated` still has table-wide email/phone SELECT, so a logged-in user could read another user's email via raw REST. Smaller blast radius (requires a real account, rate-limited) but worth closing with a column-scoped policy or a public-profile view before scale. Not a launch blocker.
 - **iOS notification-toggle parity.** Web `/settings.html` now writes `profiles.notification_prefs` (email / bookings / messages / contracts / payouts) and the 4 dispatch functions honour it (2026-05-18). iOS Settings still presents notification preferences as static UI — reads from local state, doesn't write to `profiles`. Next iOS pass: bind the existing toggles to the same column so a user opting out on one client opts out everywhere. No schema work; the column exists, RLS already lets the user write their own row.
 - **Supabase advisor — 25 SECURITY DEFINER functions are anon-executable** (down from 35 on 2026-04-29). The remaining 25 are all client-callable by design (rate limiters, admin RPCs that internally check `is_admin()`, public helpers like `check_availability` / `create_review` / `cron_health_*`).
 - **Web inline-style cleanup** — `admin.html` is now **38** (was 148 → swept in `1d9d3e2`). `dashboard.html` **2** (was 20 — swept `291e853`, both remaining are dynamic JS interpolations). `artist-dashboard.html` **0** (was ~30 — swept `291e853`). `settings.html` 35 / `messages.html` / `profile.html` 29 / `epk.html` 21 / `payments.html` similar. Extract to `system.css` utility classes when touching these files — the new admin-batch added 77 reusable classes plus the dashboard sweep added ~75 more (`.action-req-row`, `.qb-toolbar`, `.recent-msgs-list` etc.) that should cover most of what these pages need too.

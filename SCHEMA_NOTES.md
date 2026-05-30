@@ -187,6 +187,37 @@ One known advisory: `admin_rate_counter` has RLS enabled but no
 policies. Likely intentional (table is internal) — confirm before
 adding policies.
 
+### ⚠ `profiles` is the one table where COLUMN grants matter, not just RLS
+
+RLS is a **row** filter, not a **column** filter. The `profiles` table
+deliberately exposes all rows publicly — the `"Profiles readable by all"`
+policy is `USING(true)` because the public directory needs profile rows
+visible (the `artists → profiles` join surfaces display_name / avatar_url
+/ city). That means **RLS alone does NOT protect any column on profiles** —
+once a row is visible, every *granted* column comes with it.
+
+Column-level access on profiles is therefore controlled by **GRANTs**, not
+policies (set in `20260529_profiles_pii_column_lockdown.sql`, 2026-05-30):
+
+| Role | Can SELECT |
+|---|---|
+| `anon` | id, display_name, avatar_url, city, bio, role, created_at, notification_prefs — **NOT email/phone/company** |
+| `authenticated` | all columns (booking-partner + own-row reads need email/phone) |
+| SECURITY DEFINER funcs / service-role | all columns (bypass grants) |
+
+**Do NOT run a broad `GRANT SELECT ON profiles TO anon` or
+`GRANT ALL … TO anon`** (Supabase tooling sometimes suggests this) — it
+re-opens the email/phone harvest leak that was closed pre-launch. If you
+add a new public-safe column, grant it explicitly:
+`GRANT SELECT (new_col) ON profiles TO anon;`. The lockdown was verified
+against prod: `GET /rest/v1/profiles?select=email` as anon returns
+`42501 permission denied`.
+
+(Outstanding: `authenticated` still has table-wide email/phone SELECT —
+a logged-in user can read another user's email via raw REST. Smaller risk
+than the anon leak; tighten to own-row+partners-only with a column-scoped
+policy or a public view before scale.)
+
 ---
 
 ## Triggers worth knowing about
