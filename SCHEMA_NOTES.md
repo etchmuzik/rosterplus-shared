@@ -114,7 +114,7 @@ JSONB column. 5 keys, all default `true` (opt-out model). Migration:
 
 Missing keys read as `true` (legacy rows pre-migration). Lookup failures fall through to "send" (opt-out safety: couldn't read prefs should not silently drop email).
 
-Written by `/settings.html` only. iOS doesn't write this yet — iOS settings still presents notifications as static UI. See STATUS.md "iOS notification-toggle parity".
+Written by `/settings.html` and **iOS `SettingsView`** (since 2026-05-30, via `ProfileStore.updateNotificationPrefs`). Both clients write all 5 keys on every save; both decode a missing/null key as `true`. iOS shows email/bookings/messages universally plus one role-gated toggle (contracts→promoters, payouts→artists), mirroring web's role visibility. The previously-tracked "iOS notification-toggle parity" gap is now closed.
 
 Index: `profiles_email_unique_idx` on `lower(email) WHERE email IS NOT NULL` (added in the same migration; powers `send-email`'s by-recipient prefs lookup).
 

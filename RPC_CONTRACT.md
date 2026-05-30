@@ -182,9 +182,15 @@ JSONB, 5 keys, all default `true`. Migration
 `20260518_profiles_notification_prefs.sql`. Companion index
 `profiles_email_unique_idx` on `lower(email) WHERE email IS NOT NULL`.
 
-- **Written by**: `web/settings.html` `saveProfile()` packs all 5
-  toggle states into the `updates` payload, which `DB.updateProfile`
-  forwards to `profiles.update(...)`.
+- **Written by**:
+  - `web/settings.html` `saveProfile()` packs all 5 toggle states into
+    the `updates` payload, which `DB.updateProfile` forwards to
+    `profiles.update(...)`.
+  - **iOS** `SettingsView` (2026-05-30) — each toggle flip calls
+    `ProfileStore.updateNotificationPrefs(_:userID:)`, which PATCHes
+    `profiles.notification_prefs` with all 5 keys (never a partial
+    object; the role-hidden key rides along at its current value, same
+    as web). Optimistic write + rollback on failure.
 - **Read by** (gating dispatch):
   - `send-push` v4 — `prefKeyForType(data.type)` → key, queries
     `profiles.notification_prefs`, skips if `prefs[key] === false`.
@@ -194,9 +200,11 @@ JSONB, 5 keys, all default `true`. Migration
     `email` AND `bookings` true.
   - `send-review-prompts` — inherits via `send-email` (calls it with
     `type: 'review_prompt'` which gates on master `email` only).
-- **iOS**: not yet written. iOS Settings still presents notification
-  preferences as static UI. Reconciliation tracked in STATUS.md
-  ("iOS notification-toggle parity").
+- **iOS**: now writes (2026-05-30) — see "Written by" above. iOS shows
+  3 universal toggles (email/bookings/messages) + 1 role-gated
+  (contracts for promoters, payouts for artists), matching web's role
+  visibility. Missing/null keys decode to `true` (parity with web's
+  `prefs[key] !== false`).
 - **Full taxonomy** (which key gates what notification kind) lives
   in `SCHEMA_NOTES.md` under `profiles.notification_prefs`.
 
